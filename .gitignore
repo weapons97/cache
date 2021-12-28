@@ -1,0 +1,12 @@
+*.swp
+.vscode/*
+bin/*
+pkg/*
+log
+.idea
+vendor
+_rpmbuild
+*.rpm
+*.svg
+*.out
+*.test
