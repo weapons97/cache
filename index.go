@@ -60,10 +60,7 @@ func (ix *Indexer) Set(v interface{}) bool {
 	if ix.main == nil {
 		ix.main = NewCache(ix.opts...)
 	}
-	_, ok = ix.Get(id)
-	if ok {
-		ix.Del(req)
-	}
+	ix.Del(id)
 	c := ix.main
 	c.Set(id, req)
 	idxs := req.Indexs()
@@ -103,7 +100,22 @@ func (ix *Indexer) Get(id string) (v interface{}, ok bool) {
 }
 
 // Del 删除一个Indexed
-func (ix *Indexer) Del(req Indexed) {
+func (ix *Indexer) Del(v interface{}) {
+	sv, ok := v.(string)
+	if ok {
+		v, ok = ix.Get(sv)
+		if !ok {
+			return
+		}
+	}
+
+	old, ok := ix.Type().Set(v)
+	if ok  {
+		ix.del(old)
+	}
+}
+
+func (ix *Indexer) del(req Indexed) {
 	id := req.Id()
 	if ix.main == nil {
 		return
@@ -234,6 +246,7 @@ func (ix *Indexer) search(idxName string, key string) (vs []interface{}, e error
 		var res Indexed
 		res, ok = rx.(Indexed)
 		if !ok {
+			idSet.Del(ids[i])
 			return nil, fmt.Errorf(`search index id %v not main value`, ids[i])
 		}
 		v, ok := ix.typed.Get(res)
