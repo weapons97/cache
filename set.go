@@ -27,6 +27,15 @@ func NewSet(opts ...Option) *Set {
 	return newSet(opts...)
 }
 
+// NewStringSet 新创建string 类型 set
+func NewStringSet(inits []string, opts ...Option) *Set {
+	s := newSet(opts...)
+	for i := range inits {
+		s.Add(inits[i])
+	}
+	return s
+}
+
 // Add 添加key
 func (c *Set) Add(key interface{}) {
 	c.inner.Set(key, setVal)

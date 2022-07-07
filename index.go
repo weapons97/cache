@@ -110,7 +110,7 @@ func (ix *Indexer) Del(v interface{}) {
 	}
 
 	old, ok := ix.Type().Set(v)
-	if ok  {
+	if ok {
 		ix.del(old)
 	}
 }
@@ -160,6 +160,26 @@ func (ix *Indexer) Range(fn func(k, v interface{}) bool) {
 		fn(k, v)
 		return true
 	})
+}
+
+// SetFromIndex 从indexName 创建一个Set
+func (ix *Indexer) SetFromIndex(idxName string, opts ...Option) (*Set, error) {
+	ix.rw.RLock()
+	c, ok := ix.cs[idxName]
+	ix.rw.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf(`no such index`)
+	}
+	keys := make([]string, 0)
+	c.Range(func(k, v interface{}) bool {
+		s, ok := k.(string)
+		if !ok {
+			return true
+		}
+		keys = append(keys, s)
+		return true
+	})
+	return NewStringSet(keys, opts...), nil
 }
 
 // SearchResult 是Indexer 根据索引函数查找的结果

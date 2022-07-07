@@ -214,3 +214,18 @@ func TestIndex2(t *testing.T) {
 	x := rs.InvokeAll()
 	spew.Dump(x)
 }
+
+func TestIndex3(t *testing.T) {
+	index := NewIndexer(&NameContainerIndexed{})
+	// set
+	index.Set(testC1)
+	index.Set(testC2)
+	index.Set(testC3)
+	index.Set(testC4)
+	index.Set(testC5)
+	index.Set(testC6)
+
+	s1, e := index.SetFromIndex(IndexBySetID)
+	require.NoError(t, e)
+	spew.Dump(s1.ListStrings())
+}
