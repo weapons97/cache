@@ -85,6 +85,16 @@ func (ix *Indexer) Set(v interface{}) bool {
 	return true
 }
 
+// Len 返回cache 长度
+func (ix *Indexer) Len() int {
+	i := 0
+	ix.Range(func(k, v interface{}) bool {
+		i++
+		return true
+	})
+	return i
+}
+
 // Get 根据id 查找Indexed
 func (ix *Indexer) Get(id string) (v interface{}, ok bool) {
 	rx, ok := ix.main.Get(id)
