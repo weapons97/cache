@@ -53,6 +53,16 @@ func (c *Set) Range(fn func(k interface{}) bool) {
 	})
 }
 
+// Len 返回cache 长度
+func (c *Set) Len() int {
+	i := 0
+	c.Range(func(k interface{}) bool {
+		i++
+		return true
+	})
+	return i
+}
+
 // Get 查找key是否存在
 func (c *Set) Get(key interface{}) bool {
 	_, ok := c.inner.Get(key)

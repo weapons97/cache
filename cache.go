@@ -126,6 +126,16 @@ func (c *Cache) Get(req interface{}) (interface{}, bool) {
 	return v, true
 }
 
+// Len 返回cache 长度
+func (c *Cache) Len() int {
+	i := 0
+	c.Range(func(k, v interface{}) bool {
+		i++
+		return true
+	})
+	return i
+}
+
 // wrap 是cache的元素
 type wrap struct {
 	timeout time.Time
