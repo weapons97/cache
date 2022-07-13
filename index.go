@@ -19,7 +19,7 @@ type IndexFunc func(indexed Indexed) (keys []string)
 // Indexed 接口, 一个结构实现了Indexed 接口才可以被Indexer 使用
 type Indexed interface {
 	Indexs() map[string]IndexFunc
-	Id() (mainKey string)
+	ID() (mainKey string)
 	Set(v interface{}) (Indexed, bool)
 	Get(v Indexed) (interface{}, bool)
 }
@@ -56,7 +56,7 @@ func (ix *Indexer) Set(v interface{}) bool {
 	if !ok {
 		return false
 	}
-	id := req.Id()
+	id := req.ID()
 	if ix.main == nil {
 		ix.main = NewCache(ix.opts...)
 	}
@@ -126,7 +126,7 @@ func (ix *Indexer) Del(v interface{}) {
 }
 
 func (ix *Indexer) del(req Indexed) {
-	id := req.Id()
+	id := req.ID()
 	if ix.main == nil {
 		return
 	}

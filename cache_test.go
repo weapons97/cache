@@ -110,7 +110,7 @@ func (nci *NameContainerIndexed) Indexs() map[string]IndexFunc {
 	}
 }
 
-func (nci *NameContainerIndexed) Id() (mainKey string) {
+func (nci *NameContainerIndexed) ID() (mainKey string) {
 	return nci.fullName
 }
 
