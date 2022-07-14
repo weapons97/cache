@@ -86,44 +86,45 @@ func TestSetSub(t *testing.T) {
 	spew.Dump(s.List(), s2.List(), s3.List())
 }
 
-type NameContainerIndexed struct {
-	shortName string
-	fullName  string
-	setID     string
+type Person struct {
+	id       string
+	lastName string
+	fullName string
+	country  string
 }
 
 const (
-	IndexByShortName = `IndexByShortName`
-	IndexBySetID     = `IndexBySetID`
+	IndexByLastName = `IndexByLastName`
+	IndexByCountry  = `IndexByCountry`
 )
 
-func (nci *NameContainerIndexed) Indexs() map[string]IndexFunc {
+func (p *Person) Indexs() map[string]IndexFunc {
 	return map[string]IndexFunc{
-		IndexByShortName: func(indexed Indexed) (key []string) {
-			ci := indexed.(*NameContainerIndexed)
-			return []string{ci.shortName}
+		IndexByLastName: func(indexed Indexed) (key []string) {
+			ci := indexed.(*Person)
+			return []string{ci.lastName}
 		},
-		IndexBySetID: func(indexed Indexed) (key []string) {
-			ci := indexed.(*NameContainerIndexed)
-			return []string{ci.setID}
+		IndexByCountry: func(indexed Indexed) (key []string) {
+			ci := indexed.(*Person)
+			return []string{ci.country}
 		},
 	}
 }
 
-func (nci *NameContainerIndexed) ID() (mainKey string) {
-	return nci.fullName
+func (p *Person) ID() (mainKey string) {
+	return p.id
 }
 
-func (nci *NameContainerIndexed) Set(v interface{}) (Indexed, bool) {
-	rx, ok := v.(*NameContainerIndexed)
+func (p *Person) Set(v interface{}) (Indexed, bool) {
+	rx, ok := v.(*Person)
 	if !ok {
 		return nil, false
 	}
 	return rx, true
 }
 
-func (nci *NameContainerIndexed) Get(v Indexed) (interface{}, bool) {
-	rx, ok := v.(*NameContainerIndexed)
+func (p *Person) Get(v Indexed) (interface{}, bool) {
+	rx, ok := v.(*Person)
 	if !ok {
 		return nil, false
 	}
@@ -131,101 +132,118 @@ func (nci *NameContainerIndexed) Get(v Indexed) (interface{}, bool) {
 }
 
 var (
-	testC1 = &NameContainerIndexed{
-		shortName: "uhost-access",
-		fullName:  "/NS/region10027/set11/uhost/access",
-		setID:     `11`,
+	p1 = &Person{
+		id:       `1`,
+		lastName: "魏",
+		fullName: "魏鹏",
+		country:  `China`,
 	}
-	testC1_ = &NameContainerIndexed{
-		shortName: "uhost-access",
-		fullName:  "/NS/region10027/set11/uhost/access",
+	p2 = &Person{
+		id:       `2`,
+		lastName: "魏",
+		fullName: "魏无忌",
+		country:  `America`,
 	}
-	testC2 = &NameContainerIndexed{
-		shortName: "uhost-manager",
-		fullName:  "/NS/region10027/set11/uhost/manager",
-		setID:     `11`,
+	p3 = &Person{
+		id:       `3`,
+		lastName: "李",
+		fullName: "李云",
+		country:  `China`,
 	}
-	testC3 = &NameContainerIndexed{
-		shortName: "uimage3-access",
-		fullName:  "/NS/region10027/set11/uimage3/access",
-		setID:     `11`,
+	p4 = &Person{
+		id:       `4`,
+		lastName: "黄",
+		fullName: "黄帅来",
+		country:  `China`,
 	}
-	testC4 = &NameContainerIndexed{
-		shortName: "uhost-access",
-		fullName:  "/NS/region10027/set10/uhost/access",
-		setID:     `10`,
+	p5 = &Person{
+		id:       `5`,
+		lastName: "Cook",
+		fullName: "TimCook",
+		country:  `America`,
 	}
-	testC5 = &NameContainerIndexed{
-		shortName: "uhost-manager",
-		fullName:  "/NS/region10027/set10/uhost/manager",
-		setID:     `10`,
+	p6 = &Person{
+		id:       `6`,
+		lastName: "Jobs",
+		fullName: "SteveJobs",
+		country:  `America`,
 	}
-	testC6 = &NameContainerIndexed{
-		shortName: "uimage3-access",
-		fullName:  "/NS/region10027/set10/uimage3/access",
-		setID:     `10`,
+	p7 = &Person{
+		id:       `7`,
+		lastName: "Musk",
+		fullName: "Elon Musk",
+		country:  `America`,
 	}
 )
 
-func TestIndex(t *testing.T) {
-	index := NewIndexer(&NameContainerIndexed{})
+func TestIndexByCountry(t *testing.T) {
+	index := NewIndexer(&Person{})
 	// set
-	index.Set(testC1)
-	index.Set(testC2)
-	index.Set(testC3)
-	index.Set(testC4)
-	index.Set(testC5)
-	index.Set(testC6)
+	index.Set(p1)
+	index.Set(p2)
+	index.Set(p3)
+	index.Set(p4)
+	index.Set(p5)
+	index.Set(p6)
+	index.Set(p7)
+
 	// search
-	rs := index.Search(IndexBySetID, `10`)
+	rs := index.Search(IndexByCountry, `China`)
 	require.False(t, rs.Failed())
 	rx := rs.InvokeAll()
 	require.Len(t, rx, 3)
-	one := rs.InvokeOne().(*NameContainerIndexed)
-	require.Equal(t, one.setID, `10`)
+	one := rs.InvokeOne().(*Person)
+	require.Equal(t, one.country, `China`)
 	spew.Dump(rx)
-	// search
-	rs = index.Search(IndexByShortName, `uhost-access`)
-	rx = rs.InvokeAll()
-	require.Len(t, rx, 2)
-	one = rs.InvokeOne().(*NameContainerIndexed)
-	require.Equal(t, one.shortName, `uhost-access`)
-	spew.Dump(rx)
-	// search
-	v, ok := index.Get(`/NS/region10027/set10/uhost/access`)
+}
+
+func TestIndexGetByID(t *testing.T) {
+	index := NewIndexer(&Person{})
+	// set
+	index.Set(p1)
+	index.Set(p2)
+	index.Set(p3)
+	index.Set(p4)
+	index.Set(p5)
+	index.Set(p6)
+	index.Set(p7)
+	v, ok := index.Get(`7`)
 	require.True(t, ok)
-	require.Equal(t, v, testC4)
-	index.Del(testC4)
+	require.Equal(t, v, p7)
+}
+
+func TestIndexByLastName(t *testing.T) {
+	index := NewIndexer(&Person{})
+	// set
+	index.Set(p1)
+	index.Set(p2)
+	index.Set(p3)
+	index.Set(p4)
+	index.Set(p5)
+	index.Set(p6)
+	index.Set(p7)
 	// search
-	rs = index.Search(IndexByShortName, `uhost-access`)
-	rx = rs.InvokeAll()
-	require.Len(t, rx, 1)
-	one = rs.InvokeOne().(*NameContainerIndexed)
-	require.Equal(t, one, testC1)
+	rs := index.Search(IndexByLastName, `魏`)
+	rx := rs.InvokeAll()
+	require.Len(t, rx, 2)
+	one := rs.InvokeOne().(*Person)
+	require.Equal(t, one.lastName, `魏`)
 	spew.Dump(rx)
 }
 
-func TestIndex2(t *testing.T) {
-	index := NewIndexer(&NameContainerIndexed{})
+func TestIndexGetSetFromIndex(t *testing.T) {
+	index := NewIndexer(&Person{})
 	// set
-	index.Set(testC1)
-	index.Set(testC1_)
-	rs := index.Search(IndexBySetID, `11`)
-	x := rs.InvokeAll()
-	spew.Dump(x)
-}
+	index.Set(p1)
+	index.Set(p2)
+	index.Set(p3)
+	index.Set(p4)
+	index.Set(p5)
+	index.Set(p6)
+	index.Set(p7)
 
-func TestIndex3(t *testing.T) {
-	index := NewIndexer(&NameContainerIndexed{})
-	// set
-	index.Set(testC1)
-	index.Set(testC2)
-	index.Set(testC3)
-	index.Set(testC4)
-	index.Set(testC5)
-	index.Set(testC6)
-
-	s1, e := index.SetFromIndex(IndexBySetID)
+	set, e := index.SetFromIndex(IndexByCountry)
 	require.NoError(t, e)
-	spew.Dump(s1.ListStrings())
+	require.Equal(t, []string{`China`, `America`}, set.ListStrings())
+	spew.Dump(set.ListStrings())
 }
