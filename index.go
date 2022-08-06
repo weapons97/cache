@@ -26,21 +26,21 @@ type Indexed interface {
 
 // Indexer 是带索引的cache
 type Indexer struct {
-	cs    map[string]*Cache // 索引表
+	cs    map[string]*Cache[string, *Set[string]] // 索引表
 	rw    sync.RWMutex
-	main  *Cache  // 主表
-	typed Indexed // Indexer 元素类型
-	opts  []Option
+	main  *Cache[string, Indexed] // 主表
+	typed Indexed                 // Indexer 元素类型
+	opts  []Option[string, Indexed]
 }
 
 // NewIndexer 创建一个带索引的cache
-func NewIndexer(typed Indexed, ops ...Option) *Indexer {
+func NewIndexer(typed Indexed, ops ...Option[string, Indexed]) *Indexer {
 	ix := new(Indexer)
-	ix.cs = make(map[string]*Cache)
+	ix.cs = make(map[string]*Cache[string, *Set[string]])
 	ix.rw = sync.RWMutex{}
 	ix.opts = ops
 	ix.typed = typed
-	ix.main = NewCache(ops...)
+	ix.main = NewCache[string, Indexed](ops...)
 	return ix
 }
 
@@ -58,25 +58,24 @@ func (ix *Indexer) Set(v interface{}) bool {
 	}
 	id := req.ID()
 	if ix.main == nil {
-		ix.main = NewCache(ix.opts...)
+		ix.main = NewCache[string, Indexed](ix.opts...)
 	}
 	ix.Del(id)
-	c := ix.main
-	c.Set(id, req)
+	ix.main.Set(id, req)
 	idxs := req.Indexs()
 	for name, idx := range idxs {
 		keys := idx(req)
 		ix.rw.Lock()
 		if _, ok := ix.cs[name]; !ok {
-			ix.cs[name] = NewCache()
+			ix.cs[name] = NewCache[string, *Set[string]]()
 		}
 		c := ix.cs[name]
 		ix.rw.Unlock()
 		for _, key := range keys {
-			v, ok := c.Get(key)
-			set, ok2 := v.(*Set)
-			if !ok || !ok2 {
-				set = NewSet()
+			set, ok := c.Get(key)
+			// set, ok2 := v.(*Set)
+			if !ok {
+				set = NewSet[string]()
 			}
 			set.Add(id)
 			c.Set(key, set)
@@ -143,9 +142,9 @@ func (ix *Indexer) del(req Indexed) {
 		ix.rw.RUnlock()
 		c := ix.cs[name]
 		for _, key := range keys {
-			v, ok := c.Get(key)
-			set, ok2 := v.(*Set)
-			if ok && ok2 {
+			set, ok := c.Get(key)
+			// set, ok2 := v.(*Set)
+			if ok {
 				set.Del(id)
 			}
 		}
@@ -173,7 +172,7 @@ func (ix *Indexer) Range(fn func(k, v interface{}) bool) {
 }
 
 // SetFromIndex 从indexName 创建一个Set
-func (ix *Indexer) SetFromIndex(idxName string, opts ...Option) (*Set, error) {
+func (ix *Indexer) SetFromIndex(idxName string) (*Set[string], error) {
 	ix.rw.RLock()
 	c, ok := ix.cs[idxName]
 	ix.rw.RUnlock()
@@ -181,15 +180,11 @@ func (ix *Indexer) SetFromIndex(idxName string, opts ...Option) (*Set, error) {
 		return nil, fmt.Errorf(`no such index`)
 	}
 	keys := make([]string, 0)
-	c.Range(func(k, v interface{}) bool {
-		s, ok := k.(string)
-		if !ok {
-			return true
-		}
-		keys = append(keys, s)
+	c.Range(func(k string, _ *Set[string]) bool {
+		keys = append(keys, k)
 		return true
 	})
-	return NewStringSet(keys, opts...), nil
+	return NewSetInits[string](keys), nil
 }
 
 // SearchResult 是Indexer 根据索引函数查找的结果
@@ -259,26 +254,16 @@ func (ix *Indexer) search(idxName string, key string) (vs []interface{}, e error
 	if !ok {
 		return nil, fmt.Errorf(`no such index`)
 	}
-	rx, ok := c.Get(key)
+	idSet, ok := c.Get(key)
 	if !ok {
 		return nil, fmt.Errorf(`index %v no such key %v`, idxName, key)
 	}
 
-	idSet, ok := rx.(*Set) // id table must set
-	if !ok {
-		return nil, fmt.Errorf(`index %v key %v not idSet`, idxName, key)
-	}
-	ids := idSet.ListStrings()
+	ids := idSet.List()
 
 	vs = make([]interface{}, 0, len(ids))
 	for i := range ids {
-		rx, ok = ix.main.Get(ids[i])
-		var res Indexed
-		res, ok = rx.(Indexed)
-		if !ok {
-			idSet.Del(ids[i])
-			return nil, fmt.Errorf(`search index id %v not main value`, ids[i])
-		}
+		res, ok := ix.main.Get(ids[i])
 		v, ok := ix.typed.Get(res)
 		if !ok {
 			return nil, fmt.Errorf(`search index id %T can't get value'`, ix.typed)

@@ -9,27 +9,27 @@
 package cache
 
 // Set 是Set 型的cache 会多几个集合操作
-type Set struct {
-	inner *Cache
+type Set[K any] struct {
+	inner *Cache[K, struct{}]
 }
 
 var setVal = struct{}{}
 
-func newSet(opts ...Option) *Set {
-	c := NewCache(opts...)
-	s := new(Set)
+func newSet[K any](opts ...Option[K, struct{}]) *Set[K] {
+	c := NewCache[K, struct{}](opts...)
+	s := new(Set[K])
 	s.inner = c
 	return s
 }
 
 // NewSet 新创建set
-func NewSet(opts ...Option) *Set {
-	return newSet(opts...)
+func NewSet[K any](opts ...Option[K, struct{}]) *Set[K] {
+	return newSet[K](opts...)
 }
 
-// NewStringSet 新创建string 类型 set
-func NewStringSet(inits []string, opts ...Option) *Set {
-	s := newSet(opts...)
+// NewSetInits 新创建set
+func NewSetInits[K any](inits []K, opts ...Option[K, struct{}]) *Set[K] {
+	s := newSet[K](opts...)
 	for i := range inits {
 		s.Add(inits[i])
 	}
@@ -37,42 +37,37 @@ func NewStringSet(inits []string, opts ...Option) *Set {
 }
 
 // Add 添加key
-func (c *Set) Add(key interface{}) {
+func (c *Set[K]) Add(key K) {
 	c.inner.Set(key, setVal)
 }
 
 // Del 删除key
-func (c *Set) Del(key interface{}) {
+func (c *Set[K]) Del(key K) {
 	c.inner.Del(key)
 }
 
 // Range 遍历set
-func (c *Set) Range(fn func(k interface{}) bool) {
-	c.inner.Range(func(k, v interface{}) bool {
+func (c *Set[K]) Range(fn func(k K) bool) {
+	c.inner.Range(func(k K, v struct{}) bool {
 		return fn(k)
 	})
 }
 
 // Len 返回cache 长度
-func (c *Set) Len() int {
-	i := 0
-	c.Range(func(k interface{}) bool {
-		i++
-		return true
-	})
-	return i
+func (c *Set[K]) Len() int {
+	return c.inner.Len()
 }
 
 // Get 查找key是否存在
-func (c *Set) Get(key interface{}) bool {
+func (c *Set[K]) Get(key K) bool {
 	_, ok := c.inner.Get(key)
 	return ok
 }
 
 // List 列出元素
-func (c *Set) List() []interface{} {
-	res := make([]interface{}, 0)
-	c.Range(func(k interface{}) bool {
+func (c *Set[K]) List() []K {
+	res := make([]K, 0)
+	c.Range(func(k K) bool {
 		res = append(res, k)
 		return true
 	})
@@ -80,26 +75,23 @@ func (c *Set) List() []interface{} {
 }
 
 // ListStrings 以string类型列出元素
-func (c *Set) ListStrings() []string {
-	res := make([]string, 0)
-	c.Range(func(k interface{}) bool {
-		s, ok := k.(string)
-		if ok {
-			res = append(res, s)
-		}
-		return true
-	})
-	return res
-}
+//func (c *Set[K]) ListStrings() []string {
+//	res := make([]string, 0)
+//	c.Range(func(k K) bool {
+//		res = append(res, fmt.Sprintf(`%v`, k))
+//		return true
+//	})
+//	return res
+//}
 
 // Union 并集
-func (c *Set) Union(s *Set, opts ...Option) *Set {
-	n := NewSet(opts...)
-	c.Range(func(k interface{}) bool {
+func (c *Set[K]) Union(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+	n := NewSet[K](opts...)
+	c.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k interface{}) bool {
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
@@ -107,13 +99,13 @@ func (c *Set) Union(s *Set, opts ...Option) *Set {
 }
 
 // JoinLeft 左交集
-func (c *Set) JoinLeft(s *Set, opts ...Option) *Set {
-	n := NewSet(opts...)
-	c.Range(func(k interface{}) bool {
+func (c *Set[K]) JoinLeft(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+	n := NewSet[K](opts...)
+	c.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k interface{}) bool {
+	s.Range(func(k K) bool {
 		ok := n.Get(k)
 		if !ok {
 			n.Del(k)
@@ -124,13 +116,13 @@ func (c *Set) JoinLeft(s *Set, opts ...Option) *Set {
 }
 
 // JoinRight 右交集
-func (c *Set) JoinRight(s *Set, opts ...Option) *Set {
-	n := NewSet(opts...)
-	s.Range(func(k interface{}) bool {
+func (c *Set[K]) JoinRight(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+	n := NewSet[K](opts...)
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	c.Range(func(k interface{}) bool {
+	c.Range(func(k K) bool {
 		ok := n.Get(k)
 		if !ok {
 			n.Del(k)
@@ -141,13 +133,13 @@ func (c *Set) JoinRight(s *Set, opts ...Option) *Set {
 }
 
 // Join 交集
-func (c *Set) Join(s *Set, opts ...Option) *Set {
-	n := NewSet(opts...)
-	c.Range(func(k interface{}) bool {
+func (c *Set[K]) Join(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+	n := NewSet[K](opts...)
+	c.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	n.Range(func(k interface{}) bool {
+	n.Range(func(k K) bool {
 		ok := s.Get(k)
 		if !ok {
 			n.Del(k)
@@ -158,13 +150,13 @@ func (c *Set) Join(s *Set, opts ...Option) *Set {
 }
 
 // Sub 差集
-func (c *Set) Sub(s *Set, opts ...Option) *Set {
-	n := NewSet(opts...)
-	c.Range(func(k interface{}) bool {
+func (c *Set[K]) Sub(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+	n := NewSet[K](opts...)
+	c.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k interface{}) bool {
+	s.Range(func(k K) bool {
 		ok := n.Get(k)
 		if ok {
 			n.Del(k)

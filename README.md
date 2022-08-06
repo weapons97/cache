@@ -2,4 +2,6 @@
 #### example
 ```go
 // 请看 cache_test
+// 请看 index_test
+// 请看 set_test
 ```
