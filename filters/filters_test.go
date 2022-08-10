@@ -22,13 +22,16 @@ func TestFilter(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	ans := []string{"2", "4", "6"}
+	ans := []string{"2", "4", "6", "end"}
 	a := []int{1, 2, 3, 4, 5, 6}
-	b := Map(a, func(i int) (string, bool) {
+	b := Map(a, func(i int) ([]string, bool) {
+		if i == 6 {
+			return []string{fmt.Sprintf(`%v`, i), `end`}, true
+		}
 		if i%2 == 0 {
-			return fmt.Sprintf(`%v`, i), true
+			return []string{fmt.Sprintf(`%v`, i)}, true
 		} else {
-			return "", false
+			return nil, false
 		}
 	})
 	require.Equal(t, ans, b)

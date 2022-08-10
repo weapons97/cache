@@ -13,12 +13,12 @@ func Filter[T any](objs []T, filter func(obj T) bool) []T {
 }
 
 // Map one slice
-func Map[T any, K any](objs []T, mapper func(obj T) (K, bool)) []K {
+func Map[T any, K any](objs []T, mapper func(obj T) ([]K, bool)) []K {
 	res := make([]K, 0, len(objs))
 	for i := range objs {
-		other, ok := mapper(objs[i])
+		others, ok := mapper(objs[i])
 		if ok {
-			res = append(res, other)
+			res = append(res, others...)
 		}
 	}
 	return res
