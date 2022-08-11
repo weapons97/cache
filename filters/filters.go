@@ -1,5 +1,15 @@
 package filters
 
+import "strings"
+
+// NoSpace is filter func for strings
+func NoSpace(s string) bool {
+	if strings.TrimSpace(s) == "" {
+		return false
+	}
+	return true
+}
+
 // Filter filter one slice
 func Filter[T any](objs []T, filter func(obj T) bool) []T {
 	res := make([]T, 0, len(objs))
