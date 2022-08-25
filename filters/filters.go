@@ -4,10 +4,7 @@ import "strings"
 
 // NoSpace is filter func for strings
 func NoSpace(s string) bool {
-	if strings.TrimSpace(s) == "" {
-		return false
-	}
-	return true
+	return strings.TrimSpace(s) != ""
 }
 
 // Filter filter one slice

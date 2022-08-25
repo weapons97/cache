@@ -21,6 +21,14 @@ func TestFilter(t *testing.T) {
 	spew.Dump(b)
 }
 
+func TestFilterNoSpace(t *testing.T) {
+	ans1 := []string{"1", "2", "3"}
+	a := []string{"", "1", "", "2", "", "3", ""}
+	b := Filter(a, NoSpace)
+	require.Equal(t, ans1, b)
+	spew.Dump(b)
+}
+
 func TestMap(t *testing.T) {
 	ans := []string{"2", "4", "6", "end"}
 	a := []int{1, 2, 3, 4, 5, 6}
