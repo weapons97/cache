@@ -113,9 +113,10 @@ func TestIndexByCountry(t *testing.T) {
 	require.False(t, rs.Failed())
 	rx := rs.InvokeAll()
 	require.Len(t, rx, 3)
+	spew.Dump(rx)
 	one := rs.InvokeOne().(*Person)
 	require.Equal(t, one.country, `China`)
-	spew.Dump(rx)
+	spew.Dump(one)
 }
 
 func TestIndexGetByID(t *testing.T) {
