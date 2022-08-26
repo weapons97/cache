@@ -7,6 +7,21 @@ import (
 	"testing"
 )
 
+func TestRange(t *testing.T) {
+	a := []int{1, 2, 3, 4, 5, 6}
+	ans := []int{1, 2, 3, 4}
+	var b = []int{}
+	Range(a, func(i int) bool {
+		if i < 5 {
+			b = append(b, i)
+			return true
+		}
+		return false
+	})
+	require.Equal(t, ans, b)
+	spew.Dump(b)
+}
+
 func TestFilter(t *testing.T) {
 	ans := []int{2, 4, 6}
 	a := []int{1, 2, 3, 4, 5, 6}

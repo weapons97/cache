@@ -7,6 +7,15 @@ func NoSpace(s string) bool {
 	return strings.TrimSpace(s) != ""
 }
 
+// Range run func in slice
+func Range[T any](objs []T, fn func(obj T) bool) {
+	for i := range objs {
+		if !fn(objs[i]) {
+			return
+		}
+	}
+}
+
 // Filter filter one slice
 func Filter[T any](objs []T, filter func(obj T) bool) []T {
 	res := make([]T, 0, len(objs))
