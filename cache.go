@@ -113,6 +113,18 @@ func (c *Cache[K, V]) Range(fn func(k K, v V) bool) {
 	})
 }
 
+// List func list k and list v
+func (c *Cache[K, V]) List() ([]K, []V) {
+	ks := make([]K, 0)
+	vs := make([]V, 0)
+	c.Range(func(k K, v V) bool {
+		ks = append(ks, k)
+		vs = append(vs, v)
+		return true
+	})
+	return ks, vs
+}
+
 // Clean 会被cache manager 定期调用删除过期的元素
 func (c *Cache[K, V]) Clean() {
 	c.smap.Range(func(k, v any) bool {

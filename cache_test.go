@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"github.com/davecgh/go-spew/spew"
+	"sort"
 	"testing"
 	"time"
 
@@ -19,4 +21,21 @@ func TestNewCache(t *testing.T) {
 	require.False(t, ok)
 	// 超时返回0值
 	require.Equal(t, d, 0)
+}
+
+func TestCacheList(t *testing.T) {
+	c := NewCache[string, int]()
+	c.Set(`a`, 1)
+	c.Set(`b`, 2)
+	c.Set(`c`, 3)
+	ks, vs := c.List()
+	wantK := []string{`a`, `b`, `c`}
+	wantV := []int{1, 2, 3}
+	sort.Ints(vs)
+	sort.Strings(ks)
+
+	require.Equal(t, ks, wantK)
+	require.Equal(t, vs, wantV)
+	spew.Dump(ks, vs)
+
 }
