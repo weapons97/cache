@@ -1,6 +1,9 @@
 package filters
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
 // NoSpace is filter func for strings
 func NoSpace(s string) bool {
@@ -46,4 +49,41 @@ func First[T any](objs []T) (T, bool) {
 		return objs[0], true
 	}
 	return *new(T), false
+}
+
+func isZero(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Func, reflect.Map, reflect.Slice:
+		return v.IsNil()
+	case reflect.Array:
+		z := true
+		for i := 0; i < v.Len(); i++ {
+			z = z && isZero(v.Index(i))
+		}
+		return z
+	case reflect.Struct:
+		z := true
+		for i := 0; i < v.NumField(); i++ {
+			z = z && isZero(v.Field(i))
+		}
+		return z
+	}
+	// Compare other types directly:
+	z := reflect.Zero(v.Type())
+	return v.Interface() == z.Interface()
+}
+
+// OR return values which not zero value
+func OR[T any](vs ...T) T {
+	for i := range vs {
+		if !IsZero(vs[i]) {
+			return vs[i]
+		}
+	}
+	return *new(T)
+}
+
+// IsZero true when arg is zero
+func IsZero[T any](v T) bool {
+	return isZero(reflect.ValueOf(v))
 }

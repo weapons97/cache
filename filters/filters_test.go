@@ -84,3 +84,52 @@ func TestFirstString(t *testing.T) {
 	require.Equal(t, ans2, d)
 	spew.Dump(d)
 }
+
+func TestORInt(t *testing.T) {
+	a, b, c := 1, 0, -1
+	res := OR(a, b)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+	res = OR(b, c)
+	require.Equal(t, res, c)
+	spew.Dump(res)
+	res = OR(b, b)
+	require.Equal(t, res, b)
+	spew.Dump(res)
+	res = OR(a, b, c)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+
+}
+
+func TestORString(t *testing.T) {
+	a, b, c := "1", "", "-1"
+	res := OR(a, b)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+	res = OR(b, c)
+	require.Equal(t, res, c)
+	spew.Dump(res)
+	res = OR(b, b)
+	require.Equal(t, res, b)
+	spew.Dump(res)
+	res = OR(a, b, c)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+}
+
+func TestORBool(t *testing.T) {
+	a, b, c := true, false, true
+	res := OR(a, b)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+	res = OR(b, c)
+	require.Equal(t, res, c)
+	spew.Dump(res)
+	res = OR(b, b)
+	require.Equal(t, res, b)
+	spew.Dump(res)
+	res = OR(a, b, c)
+	require.Equal(t, res, a)
+	spew.Dump(res)
+}
