@@ -87,3 +87,14 @@ func OR[T any](vs ...T) T {
 func IsZero[T any](v T) bool {
 	return isZero(reflect.ValueOf(v))
 }
+
+// FilterMap filter one map to another map
+func FilterMap[K comparable, V any](m map[K]V, f func(K, V) bool) map[K]V {
+	ret := make(map[K]V)
+	for k, v := range m {
+		if f(k, v) {
+			ret[k] = v
+		}
+	}
+	return ret
+}

@@ -40,6 +40,27 @@ func TestFilterNoSpace(t *testing.T) {
 	spew.Dump(b)
 }
 
+func TestFilterMap(t *testing.T) {
+	ans := map[string]int{
+		"2": 2,
+		"4": 4,
+		"6": 6,
+	}
+	a := map[string]int{
+		"1": 1,
+		"2": 2,
+		"3": 3,
+		"4": 4,
+		"5": 5,
+		"6": 6,
+	}
+	b := FilterMap(a, func(k string, i int) bool {
+		return i%2 == 0
+	})
+	require.Equal(t, ans, b)
+	spew.Dump(b)
+}
+
 func TestMap(t *testing.T) {
 	ans := []string{"2", "4", "6", "end"}
 	a := []int{1, 2, 3, 4, 5, 6}
