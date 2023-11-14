@@ -192,12 +192,25 @@ func TestIndexByCountry(t *testing.T) {
 }
 
 func TestIndexGetSetFromIndex(t *testing.T) {
-
 	set, e := index.SetFromIndex(IndexByCountry)
 	require.NoError(t, e)
-
 	ans := set.List()
 	sort.Strings(ans)
 	require.Equal(t, []string{`America`, `China`}, ans)
 	spew.Dump(ans)
+}
+
+func TestIndexRange(t *testing.T) {
+	wants := []*Person{p1, p2, p3, p4, p5, p6, p7}
+	rx := []*Person{}
+	index.Range(func(k string, v *Person) bool {
+		rx = append(rx, v)
+		return true
+	})
+	sort.Slice(rx, func(i, j int) bool {
+		return rx[i].id < rx[j].id
+	})
+	if !reflect.DeepEqual(rx, wants) {
+		t.Errorf("got %v, want %v", rx, wants)
+	}
 }

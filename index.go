@@ -34,17 +34,17 @@ func IndexGet[T any](i Indexed) (rx T, ok bool) {
 type Indexer[T Indexed] struct {
 	cs   map[string]*Cache[string, *Set[string]] // 索引表
 	rw   sync.RWMutex
-	main *Cache[string, Indexed] // 主表
-	opts []Option[string, Indexed]
+	main *Cache[string, T] // 主表
+	opts []Option[string, T]
 }
 
 // NewIndexer 创建一个带索引的cache
-func NewIndexer[T Indexed](ops ...Option[string, Indexed]) *Indexer[T] {
+func NewIndexer[T Indexed](ops ...Option[string, T]) *Indexer[T] {
 	ix := new(Indexer[T])
 	ix.cs = make(map[string]*Cache[string, *Set[string]])
 	ix.rw = sync.RWMutex{}
 	ix.opts = ops
-	ix.main = NewCache[string, Indexed](ops...)
+	ix.main = NewCache[string, T](ops...)
 	return ix
 }
 
@@ -52,7 +52,7 @@ func NewIndexer[T Indexed](ops ...Option[string, Indexed]) *Indexer[T] {
 func (ix *Indexer[T]) Set(v T) bool {
 	id := v.ID()
 	if ix.main == nil {
-		ix.main = NewCache[string, Indexed](ix.opts...)
+		ix.main = NewCache[string, T](ix.opts...)
 	}
 	ix.Del(id)
 	ix.main.Set(id, v)
@@ -81,7 +81,7 @@ func (ix *Indexer[T]) Set(v T) bool {
 // Len 返回cache 长度
 func (ix *Indexer[T]) Len() int {
 	i := 0
-	ix.Range(func(k, v interface{}) bool {
+	ix.Range(func(k string, v T) bool {
 		i++
 		return true
 	})
@@ -94,13 +94,7 @@ func (ix *Indexer[T]) Get(id string) (v T, ok bool) {
 	if !ok {
 		return v, false
 	}
-	var res Indexed
-	res, ok = rx.(Indexed)
-	if !ok {
-		return v, false
-	}
-	v, ok = res.(T)
-	return v, ok
+	return rx, false
 }
 
 // Del 删除一个Indexed
@@ -147,19 +141,8 @@ func (ix *Indexer[T]) del(req Indexed) {
 }
 
 // Range 遍历Indexer
-func (ix *Indexer[T]) Range(fn func(k, v interface{}) bool) {
-	ix.main.smap.Range(func(k, v interface{}) bool {
-		xv, ok := ix.main.unWrapTTL(v)
-		if !ok {
-			return true
-		}
-		iv, ok := xv.(Indexed)
-		if !ok {
-			return true
-		}
-		fn(k, iv)
-		return true
-	})
+func (ix *Indexer[T]) Range(fn func(k string, v T) bool) {
+	ix.main.Range(fn)
 }
 
 // SetFromIndex 从indexName 创建一个Set

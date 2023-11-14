@@ -37,5 +37,26 @@ func TestCacheList(t *testing.T) {
 	require.Equal(t, ks, wantK)
 	require.Equal(t, vs, wantV)
 	spew.Dump(ks, vs)
+}
 
+func TestCacheRange(t *testing.T) {
+	c := NewCache[string, int]()
+	c.Set(`a`, 1)
+	c.Set(`b`, 2)
+	c.Set(`c`, 3)
+	ks := []string{}
+	vs := []int{}
+	c.Range(func(k string, v int) bool {
+		ks = append(ks, k)
+		vs = append(vs, v)
+		return true
+	})
+	wantK := []string{`a`, `b`, `c`}
+	wantV := []int{1, 2, 3}
+	sort.Ints(vs)
+	sort.Strings(ks)
+
+	require.Equal(t, ks, wantK)
+	require.Equal(t, vs, wantV)
+	spew.Dump(ks, vs)
 }
