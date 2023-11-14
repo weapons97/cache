@@ -3,6 +3,7 @@ package cache
 import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"sort"
 	"testing"
 )
@@ -21,11 +22,11 @@ const (
 
 func (p *Person) Indexs() map[string]IndexFunc {
 	return map[string]IndexFunc{
-		IndexByLastName: func(indexed Indexed) (key []string) {
+		IndexByLastName: func(indexed any) (key []string) {
 			ci := indexed.(*Person)
 			return []string{ci.lastName}
 		},
-		IndexByCountry: func(indexed Indexed) (key []string) {
+		IndexByCountry: func(indexed any) (key []string) {
 			ci := indexed.(*Person)
 			return []string{ci.country}
 		},
@@ -34,22 +35,6 @@ func (p *Person) Indexs() map[string]IndexFunc {
 
 func (p *Person) ID() (mainKey string) {
 	return p.id
-}
-
-func (p *Person) Set(v interface{}) (Indexed, bool) {
-	rx, ok := v.(*Person)
-	if !ok {
-		return nil, false
-	}
-	return rx, true
-}
-
-func (p *Person) Get(v Indexed) (interface{}, bool) {
-	rx, ok := v.(*Person)
-	if !ok {
-		return nil, false
-	}
-	return rx, true
 }
 
 var (
@@ -95,10 +80,10 @@ var (
 		fullName: "Elon Musk",
 		country:  `America`,
 	}
+	index = NewIndexer[*Person]()
 )
 
-func TestIndexByCountry(t *testing.T) {
-	index := NewIndexer(&Person{})
+func init() {
 	// set
 	index.Set(p1)
 	index.Set(p2)
@@ -107,62 +92,106 @@ func TestIndexByCountry(t *testing.T) {
 	index.Set(p5)
 	index.Set(p6)
 	index.Set(p7)
+}
 
-	// search
-	rs := index.Search(IndexByCountry, `China`)
-	require.False(t, rs.Failed())
-	rx := rs.InvokeAll()
-	require.Len(t, rx, 3)
-	spew.Dump(rx)
-	one := rs.InvokeOne().(*Person)
-	require.Equal(t, one.country, `China`)
-	spew.Dump(one)
+func any2Slice[T any](ps []any) (rs []T) {
+	for _, v := range ps {
+		rs = append(rs, v.(T))
+	}
+	return rs
 }
 
 func TestIndexGetByID(t *testing.T) {
-	index := NewIndexer(&Person{})
-	// set
-	index.Set(p1)
-	index.Set(p2)
-	index.Set(p3)
-	index.Set(p4)
-	index.Set(p5)
-	index.Set(p6)
-	index.Set(p7)
-	v, ok := index.Get(`7`)
-	require.True(t, ok)
-	require.Equal(t, v, p7)
+	tests := []struct {
+		name string
+		id   string
+		res  *Person
+	}{
+		{`IndexGetByID.1`,
+			`1`,
+			p1,
+		},
+		{`IndexGetByID.2`,
+			`2`,
+			p2,
+		},
+		{`IndexGetByID.4`,
+			`4`,
+			p4,
+		},
+		{`IndexGetByID.5`,
+			`5`,
+			p5,
+		},
+		{`IndexGetByID.7`,
+			`7`,
+			p7,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rx, ok := index.Get(tt.id)
+			require.True(t, ok)
+			if !reflect.DeepEqual(rx, tt.res) {
+				t.Errorf("got %v, want %v", rx, tt.res)
+			}
+		})
+	}
 }
 
 func TestIndexByLastName(t *testing.T) {
-	index := NewIndexer(&Person{})
-	// set
-	index.Set(p1)
-	index.Set(p2)
-	index.Set(p3)
-	index.Set(p4)
-	index.Set(p5)
-	index.Set(p6)
-	index.Set(p7)
-	// search
-	rs := index.Search(IndexByLastName, `魏`)
-	rx := rs.InvokeAll()
-	require.Len(t, rx, 2)
-	one := rs.InvokeOne().(*Person)
-	require.Equal(t, one.lastName, `魏`)
-	spew.Dump(rx)
+	tests := []struct {
+		name      string
+		indexName string
+		indexKey  string
+		res       []*Person
+	}{
+		{`IndexByLastName.魏`,
+			IndexByLastName,
+			`魏`,
+			[]*Person{p1, p2},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := index.Search(tt.indexName, tt.indexKey)
+			rx := rs.InvokeAll()
+			if !reflect.DeepEqual(rx, tt.res) {
+				t.Errorf("got %v, want %v", rx, tt.res)
+			}
+		})
+	}
+}
+
+func TestIndexByCountry(t *testing.T) {
+	tests := []struct {
+		name      string
+		indexName string
+		indexKey  string
+		res       []*Person
+	}{
+		{`IndexByCountry`,
+			IndexByCountry,
+			`China`,
+			[]*Person{p1, p3, p4},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := index.Search(tt.indexName, tt.indexKey)
+			rx := rs.InvokeAll()
+			require.Len(t, rx, len(tt.res))
+			if !reflect.DeepEqual(rx, tt.res) {
+				t.Errorf("got %v, want %v", rx, tt.res)
+			}
+		})
+	}
 }
 
 func TestIndexGetSetFromIndex(t *testing.T) {
-	index := NewIndexer(&Person{})
-	// set
-	index.Set(p1)
-	index.Set(p2)
-	index.Set(p3)
-	index.Set(p4)
-	index.Set(p5)
-	index.Set(p6)
-	index.Set(p7)
 
 	set, e := index.SetFromIndex(IndexByCountry)
 	require.NoError(t, e)

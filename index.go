@@ -14,57 +14,51 @@ import (
 )
 
 // IndexFunc 是Indexed元素的索引函数
-type IndexFunc func(indexed Indexed) (keys []string)
+type IndexFunc func(indexed any) (keys []string)
 
 // Indexed 接口, 一个结构实现了Indexed 接口才可以被Indexer 使用
 type Indexed interface {
 	Indexs() map[string]IndexFunc
 	ID() (mainKey string)
-	Set(v interface{}) (Indexed, bool)
-	Get(v Indexed) (interface{}, bool)
+}
+
+func IndexGet[T any](i Indexed) (rx T, ok bool) {
+	rx, ok = i.(T)
+	if !ok {
+		return rx, false
+	}
+	return rx, true
 }
 
 // Indexer 是带索引的cache
-type Indexer struct {
-	cs    map[string]*Cache[string, *Set[string]] // 索引表
-	rw    sync.RWMutex
-	main  *Cache[string, Indexed] // 主表
-	typed Indexed                 // Indexer 元素类型
-	opts  []Option[string, Indexed]
+type Indexer[T Indexed] struct {
+	cs   map[string]*Cache[string, *Set[string]] // 索引表
+	rw   sync.RWMutex
+	main *Cache[string, Indexed] // 主表
+	opts []Option[string, Indexed]
 }
 
 // NewIndexer 创建一个带索引的cache
-func NewIndexer(typed Indexed, ops ...Option[string, Indexed]) *Indexer {
-	ix := new(Indexer)
+func NewIndexer[T Indexed](ops ...Option[string, Indexed]) *Indexer[T] {
+	ix := new(Indexer[T])
 	ix.cs = make(map[string]*Cache[string, *Set[string]])
 	ix.rw = sync.RWMutex{}
 	ix.opts = ops
-	ix.typed = typed
 	ix.main = NewCache[string, Indexed](ops...)
 	return ix
 }
 
-// Type 返回Indexer 索引的类型 Indexed
-func (ix *Indexer) Type() Indexed {
-	return ix.typed
-}
-
 // Set 设置值，v 必须和 Indexer 的type相同
-func (ix *Indexer) Set(v interface{}) bool {
-
-	req, ok := ix.Type().Set(v)
-	if !ok {
-		return false
-	}
-	id := req.ID()
+func (ix *Indexer[T]) Set(v T) bool {
+	id := v.ID()
 	if ix.main == nil {
 		ix.main = NewCache[string, Indexed](ix.opts...)
 	}
 	ix.Del(id)
-	ix.main.Set(id, req)
-	idxs := req.Indexs()
+	ix.main.Set(id, v)
+	idxs := v.Indexs()
 	for name, idx := range idxs {
-		keys := idx(req)
+		keys := idx(v)
 		ix.rw.Lock()
 		if _, ok := ix.cs[name]; !ok {
 			ix.cs[name] = NewCache[string, *Set[string]]()
@@ -85,7 +79,7 @@ func (ix *Indexer) Set(v interface{}) bool {
 }
 
 // Len 返回cache 长度
-func (ix *Indexer) Len() int {
+func (ix *Indexer[T]) Len() int {
 	i := 0
 	ix.Range(func(k, v interface{}) bool {
 		i++
@@ -95,36 +89,37 @@ func (ix *Indexer) Len() int {
 }
 
 // Get 根据id 查找Indexed
-func (ix *Indexer) Get(id string) (v interface{}, ok bool) {
+func (ix *Indexer[T]) Get(id string) (v T, ok bool) {
 	rx, ok := ix.main.Get(id)
 	if !ok {
-		return nil, false
+		return v, false
 	}
 	var res Indexed
 	res, ok = rx.(Indexed)
 	if !ok {
-		return nil, false
+		return v, false
 	}
-	return ix.typed.Get(res)
+	v, ok = res.(T)
+	return v, ok
 }
 
 // Del 删除一个Indexed
-func (ix *Indexer) Del(v interface{}) {
+func (ix *Indexer[T]) Del(v interface{}) {
 	sv, ok := v.(string)
 	if ok {
-		v, ok = ix.Get(sv)
+		v2, ok := ix.Get(sv)
 		if !ok {
 			return
 		}
+		ix.del(v2)
 	}
-
-	old, ok := ix.Type().Set(v)
+	v2, ok := v.(T)
 	if ok {
-		ix.del(old)
+		ix.del(v2)
 	}
 }
 
-func (ix *Indexer) del(req Indexed) {
+func (ix *Indexer[T]) del(req Indexed) {
 	id := req.ID()
 	if ix.main == nil {
 		return
@@ -152,7 +147,7 @@ func (ix *Indexer) del(req Indexed) {
 }
 
 // Range 遍历Indexer
-func (ix *Indexer) Range(fn func(k, v interface{}) bool) {
+func (ix *Indexer[T]) Range(fn func(k, v interface{}) bool) {
 	ix.main.smap.Range(func(k, v interface{}) bool {
 		xv, ok := ix.main.unWrapTTL(v)
 		if !ok {
@@ -162,17 +157,13 @@ func (ix *Indexer) Range(fn func(k, v interface{}) bool) {
 		if !ok {
 			return true
 		}
-		v, ok = ix.typed.Get(iv)
-		if !ok {
-			return true
-		}
-		fn(k, v)
+		fn(k, iv)
 		return true
 	})
 }
 
 // SetFromIndex 从indexName 创建一个Set
-func (ix *Indexer) SetFromIndex(idxName string) (*Set[string], error) {
+func (ix *Indexer[T]) SetFromIndex(idxName string) (*Set[string], error) {
 	ix.rw.RLock()
 	c, ok := ix.cs[idxName]
 	ix.rw.RUnlock()
@@ -188,13 +179,13 @@ func (ix *Indexer) SetFromIndex(idxName string) (*Set[string], error) {
 }
 
 // SearchResult 是Indexer 根据索引函数查找的结果
-type SearchResult struct {
+type SearchResult[T Indexed] struct {
 	e   error
-	Res []interface{}
+	Res []T
 }
 
 // Error 查找的错误
-func (sr *SearchResult) Error() error {
+func (sr *SearchResult[T]) Error() error {
 	if sr == nil {
 		return fmt.Errorf(`SearchResult is nil`)
 	}
@@ -202,7 +193,7 @@ func (sr *SearchResult) Error() error {
 }
 
 // Failed 查找是否成功
-func (sr *SearchResult) Failed() bool {
+func (sr *SearchResult[T]) Failed() bool {
 	if sr.Error() != nil {
 		return true
 	}
@@ -210,15 +201,15 @@ func (sr *SearchResult) Failed() bool {
 }
 
 // InvokeOne 拿一个结果就好
-func (sr *SearchResult) InvokeOne() interface{} {
+func (sr *SearchResult[T]) InvokeOne() (rx T) {
 	if sr.e == nil && len(sr.Res) > 0 {
 		return sr.Res[0]
 	}
-	return nil
+	return
 }
 
 // InvokeAll 返回所有搜索结果
-func (sr *SearchResult) InvokeAll() []interface{} {
+func (sr *SearchResult[T]) InvokeAll() []T {
 	if sr.e == nil {
 		return sr.Res
 	}
@@ -226,7 +217,7 @@ func (sr *SearchResult) InvokeAll() []interface{} {
 }
 
 // Range 遍历所有搜索结果
-func (sr *SearchResult) Range(fn func(v interface{}) bool) {
+func (sr *SearchResult[T]) Range(fn func(v T) bool) {
 	if sr == nil || sr.e != nil {
 		return
 	}
@@ -239,15 +230,15 @@ func (sr *SearchResult) Range(fn func(v interface{}) bool) {
 }
 
 // Search 根据索引函数查找Indexer
-func (ix *Indexer) Search(idxName string, key string) *SearchResult {
+func (ix *Indexer[T]) Search(idxName string, key string) *SearchResult[T] {
 	vs, e := ix.search(idxName, key)
-	return &SearchResult{
+	return &SearchResult[T]{
 		e:   e,
 		Res: vs,
 	}
 }
 
-func (ix *Indexer) search(idxName string, key string) (vs []interface{}, e error) {
+func (ix *Indexer[T]) search(idxName string, key string) (vs []T, e error) {
 	ix.rw.RLock()
 	c, ok := ix.cs[idxName]
 	ix.rw.RUnlock()
@@ -261,12 +252,12 @@ func (ix *Indexer) search(idxName string, key string) (vs []interface{}, e error
 
 	ids := idSet.List()
 
-	vs = make([]interface{}, 0, len(ids))
+	vs = make([]T, 0, len(ids))
 	for i := range ids {
 		res, ok := ix.main.Get(ids[i])
-		v, ok := ix.typed.Get(res)
+		v, ok := IndexGet[T](res)
 		if !ok {
-			return nil, fmt.Errorf(`search index id %T can't get value'`, ix.typed)
+			return nil, fmt.Errorf(`search index id %T can't get value'`, res)
 		}
 		vs = append(vs, v)
 	}

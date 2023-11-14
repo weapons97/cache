@@ -313,11 +313,11 @@ const (
 
 func (p *Person) Indexs() map[string]IndexFunc {
 	return map[string]IndexFunc{
-		IndexByLastName: func(indexed Indexed) (key []string) {
+		IndexByLastName: func(indexed any) (key []string) {
 			ci := indexed.(*Person)
 			return []string{ci.lastName}
 		},
-		IndexByCountry: func(indexed Indexed) (key []string) {
+		IndexByCountry: func(indexed any) (key []string) {
 			ci := indexed.(*Person)
 			return []string{ci.country}
 		},
@@ -327,23 +327,6 @@ func (p *Person) Indexs() map[string]IndexFunc {
 func (p *Person) ID() (mainKey string) {
 	return p.id
 }
-
-func (p *Person) Set(v interface{}) (Indexed, bool) {
-	rx, ok := v.(*Person)
-	if !ok {
-		return nil, false
-	}
-	return rx, true
-}
-
-func (p *Person) Get(v Indexed) (interface{}, bool) {
-	rx, ok := v.(*Person)
-	if !ok {
-		return nil, false
-	}
-	return rx, true
-}
-
 ```
 
 ```go
@@ -396,55 +379,28 @@ var (
 
 ```go 
 func TestIndexByCountry(t *testing.T) {
-	index := NewIndexer(&Person{})
-	// set
-	index.Set(p1)
-	index.Set(p2)
-	index.Set(p3)
-	index.Set(p4)
-	index.Set(p5)
-	index.Set(p6)
-	index.Set(p7)
+	tests := []struct {
+		name      string
+		indexName string
+		indexKey  string
+		res       []*Person
+	}{
+		{`IndexByCountry`,
+			IndexByCountry,
+			`China`,
+			[]*Person{p1, p3, p4},
+		},
+	}
 
-	// search
-	rs := index.Search(IndexByCountry, `China`)
-	require.False(t, rs.Failed())
-	rx := rs.InvokeAll()
-	require.Len(t, rx, 3)
-	spew.Dump(rx)
-	one := rs.InvokeOne().(*Person)
-	require.Equal(t, one.country, `China`)
-	spew.Dump(one)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := index.Search(tt.indexName, tt.indexKey)
+			rx := rs.InvokeAll()
+			require.Len(t, rx, len(tt.res))
+			if !reflect.DeepEqual(rx, tt.res) {
+				t.Errorf("got %v, want %v", rx, tt.res)
+			}
+		})
+	}
 }
-// result
-=== RUN   TestIndexByCountry
-([]interface {}) (len=3 cap=3) {
- (*cache.Person)(0x14139c0)({
-  id: (string) (len=1) "3",
-  lastName: (string) (len=3) "李",
-  fullName: (string) (len=6) "李云",
-  country: (string) (len=5) "China"
- }),
- (*cache.Person)(0x1413a00)({
-  id: (string) (len=1) "4",
-  lastName: (string) (len=3) "黄",
-  fullName: (string) (len=9) "黄帅来",
-  country: (string) (len=5) "China"
- }),
- (*cache.Person)(0x1413940)({
-  id: (string) (len=1) "1",
-  lastName: (string) (len=3) "魏",
-  fullName: (string) (len=6) "魏鹏",
-  country: (string) (len=5) "China"
- })
-}
-(*cache.Person)(0x14139c0)({
- id: (string) (len=1) "3",
- lastName: (string) (len=3) "李",
- fullName: (string) (len=6) "李云",
- country: (string) (len=5) "China"
-})
---- PASS: TestIndexByCountry (0.00s)
-PASS
-
 ```
