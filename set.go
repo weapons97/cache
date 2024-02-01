@@ -8,6 +8,25 @@
 =============================================================================*/
 package cache
 
+// InterfaceSet 是set的接口
+type InterfaceSet[K any] interface {
+	Add(key ...K)
+	Remove(key ...K)
+	Pop() K
+	Has(items ...K) bool
+	Size() int
+	Clear()
+	IsEmpty() bool
+	IsEqual(s *Set[K]) bool
+	IsSubset(s *Set[K]) bool
+	IsSuperset(s *Set[K]) bool
+	Range(fn func(k K) bool)
+	List() []K
+	Copy() *Set[K]
+	Merge(s *Set[K])
+	Separate(t *Set[K])
+}
+
 // Set 是Set 型的cache 会多几个集合操作
 type Set[K any] struct {
 	inner *Cache[K, struct{}]
@@ -37,13 +56,40 @@ func NewSetInits[K any](inits []K, opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // Add 添加key
-func (c *Set[K]) Add(key K) {
-	c.inner.Set(key, setVal)
+func (c *Set[K]) Add(key ...K) {
+	for i := range key {
+		c.inner.Set(key[i], setVal)
+	}
 }
 
-// Del 删除key
-func (c *Set[K]) Del(key K) {
-	c.inner.Del(key)
+// Has 已查找已传递的项目是否存在。如果未传递任何内容，则返回 false。对于多个项目，仅当所有项目都存在时，它才返回 true。
+func (c *Set[K]) Has(items ...K) bool {
+	if len(items) == 0 {
+		return false
+	}
+
+	for _, item := range items {
+		if _, ok := c.inner.Get(item); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Set[K]) Pop() (res K) {
+	c.inner.Range(func(k K, v struct{}) bool {
+		res = k
+		c.inner.Del(k)
+		return false
+	})
+	return res
+}
+
+// Remove 删除key
+func (c *Set[K]) Remove(key ...K) {
+	for i := range key {
+		c.inner.Del(key[i])
+	}
 }
 
 // Range 遍历set
@@ -53,8 +99,8 @@ func (c *Set[K]) Range(fn func(k K) bool) {
 	})
 }
 
-// Len 返回cache 长度
-func (c *Set[K]) Len() int {
+// Size 返回cache 长度
+func (c *Set[K]) Size() int {
 	return c.inner.Len()
 }
 
@@ -98,8 +144,8 @@ func (c *Set[K]) Union(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	return n
 }
 
-// JoinLeft 左交集
-func (c *Set[K]) JoinLeft(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+// Difference godoc
+func (c *Set[K]) Difference(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
 	c.Range(func(k K) bool {
 		n.Add(k)
@@ -107,33 +153,16 @@ func (c *Set[K]) JoinLeft(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	})
 	s.Range(func(k K) bool {
 		ok := n.Get(k)
-		if !ok {
-			n.Del(k)
+		if ok {
+			n.Remove(k)
 		}
 		return true
 	})
 	return n
 }
 
-// JoinRight 右交集
-func (c *Set[K]) JoinRight(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
-	n := NewSet[K](opts...)
-	s.Range(func(k K) bool {
-		n.Add(k)
-		return true
-	})
-	c.Range(func(k K) bool {
-		ok := n.Get(k)
-		if !ok {
-			n.Del(k)
-		}
-		return true
-	})
-	return n
-}
-
-// Join 交集
-func (c *Set[K]) Join(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+// Intersection 交集
+func (c *Set[K]) Intersection(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
 	c.Range(func(k K) bool {
 		n.Add(k)
@@ -142,7 +171,7 @@ func (c *Set[K]) Join(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n.Range(func(k K) bool {
 		ok := s.Get(k)
 		if !ok {
-			n.Del(k)
+			n.Remove(k)
 		}
 		return true
 	})
@@ -159,9 +188,62 @@ func (c *Set[K]) Sub(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	s.Range(func(k K) bool {
 		ok := n.Get(k)
 		if ok {
-			n.Del(k)
+			n.Remove(k)
 		}
 		return true
 	})
 	return n
+}
+
+// Separate it's not the opposite of Merge.
+// Separate removes the set items containing in t from set s. Please aware that
+func (c *Set[K]) Separate(t *Set[K]) {
+	c.Remove(t.List()...)
+}
+
+// Copy 复制set
+func (c *Set[K]) Copy() *Set[K] {
+	opts := c.inner.opts
+	return NewSetInits(c.List(), opts...)
+}
+
+// Merge 合并set
+func (c *Set[K]) Merge(s *Set[K]) {
+	s.Range(func(k K) bool {
+		c.Add(k)
+		return true
+	})
+}
+
+// Clear 清空set
+func (c *Set[K]) Clear() {
+	c.inner = NewCache[K, struct{}]()
+}
+
+// IsEmpty 判断set是否为空
+func (c *Set[K]) IsEmpty() bool {
+	return c.Size() == 0
+}
+
+// IsEqual 判断set是否相等
+func (c *Set[K]) IsEqual(s *Set[K]) bool {
+	if c.Size() != s.Size() {
+		return false
+	}
+	return c.Difference(s).IsEmpty()
+}
+
+// IsSubset 判断set是否为子集
+func (c *Set[K]) IsSubset(s *Set[K]) (subset bool) {
+	subset = true
+	s.Range(func(k K) bool {
+		subset = c.Get(k)
+		return subset
+	})
+	return
+}
+
+// IsSuperset 判断set是否为父集
+func (c *Set[K]) IsSuperset(s *Set[K]) bool {
+	return s.IsSubset(c)
 }

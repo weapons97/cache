@@ -17,7 +17,7 @@ import (
 
 var (
 	// Forever 永远不超时
-	Forever = time.Hour * 24 * 365 * 10
+	Forever = time.Hour * 24 * 365 * 100
 	// defaultTTL 默认超时时间
 	defaultTTL = Forever
 )
@@ -60,11 +60,15 @@ func (c *Cache[K, V]) init(opts ...Option[K, V]) {
 	for i := range opts {
 		opts[i](c)
 	}
+	if c.ttl == defaultTTL {
+		c.noManager = true
+	}
 }
 
 // NewCache 创建新cache
 func NewCache[K any, V any](opts ...Option[K, V]) *Cache[K, V] {
 	res := Cache[K, V]{}
+	res.opts = opts
 	res.init(opts...)
 	if res.noManager {
 		return &res
@@ -74,12 +78,18 @@ func NewCache[K any, V any](opts ...Option[K, V]) *Cache[K, V] {
 	return &res
 }
 
+// Options 返回cache的选项
+func (c *Cache[K, V]) Options() []Option[K, V] {
+	return c.opts
+}
+
 // Cache 是一个带超时的缓存, 超时的元素会获取不到并删除(默认情况下)
 type Cache[K any, V any] struct {
 	ttl       time.Duration
 	smap      *sync.Map
 	name      string
 	noManager bool
+	opts      []Option[K, V]
 }
 
 // Name return name of cache
@@ -123,6 +133,12 @@ func (c *Cache[K, V]) List() ([]K, []V) {
 		return true
 	})
 	return ks, vs
+}
+
+// ListSet func list k and list v with set
+func (c *Cache[K, V]) ListSet() (*Set[K], *Set[V]) {
+	ks, vs := c.List()
+	return NewSetInits(ks), NewSetInits(vs)
 }
 
 // Clean 会被cache manager 定期调用删除过期的元素
@@ -176,6 +192,7 @@ func (c *Cache[K, V]) wrapTTL(v any) *wrap {
 		v:       v,
 	}
 }
+
 func (c *Cache[K, V]) unWrapTTL(v any) (any, bool) {
 	wp, ok := v.(*wrap)
 	if !ok {

@@ -134,7 +134,7 @@ func (ix *Indexer[T]) del(req Indexed) {
 			set, ok := c.Get(key)
 			// set, ok2 := v.(*Set)
 			if ok {
-				set.Del(id)
+				set.Remove(id)
 			}
 		}
 	}
