@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"testing"
 )
 
@@ -153,4 +154,71 @@ func TestORBool(t *testing.T) {
 	res = OR(a, b, c)
 	require.Equal(t, res, a)
 	spew.Dump(res)
+}
+
+func TestAddOrUpdateSlice(t *testing.T) {
+	v1 := 1
+	v2 := 2
+	v3 := 3
+	vs := []int{v1, v2, v3}
+	vs = AddOrUpdateSlice(vs, []int{2, 3}...)
+	require.Equal(t, []int{v1, v2, v3}, vs)
+	spew.Dump(vs)
+	vs = AddOrUpdateSlice(vs, []int{2, 4}...)
+	require.Equal(t, []int{v1, v2, v3, 4}, vs)
+	spew.Dump(vs)
+}
+
+func TestGetDefault(t *testing.T) {
+	testCase := []struct {
+		name     string
+		val      any
+		def      any
+		expected any
+	}{
+		{
+			name:     "default val string",
+			val:      "a",
+			def:      "b",
+			expected: "a",
+		},
+		{
+			name:     "default null val string",
+			val:      "",
+			def:      "b",
+			expected: "b",
+		},
+		{
+			name:     "default val int",
+			val:      1,
+			def:      2,
+			expected: 1,
+		},
+		{
+			name:     "default null val int",
+			val:      0,
+			def:      2,
+			expected: 2,
+		},
+		{
+			name:     "default val []slice",
+			val:      []string{"a", "b"},
+			def:      []string{"b"},
+			expected: []string{"a", "b"},
+		},
+		{
+			name:     "empty val []sting",
+			val:      nil,
+			def:      []string{"a"},
+			expected: []string{"a"},
+		},
+	}
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			res := GetDefault(tc.val, tc.def)
+			if !reflect.DeepEqual(res, tc.expected) {
+				t.Errorf("expected %v, got %v", tc.expected, res)
+			}
+		})
+	}
 }

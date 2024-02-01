@@ -98,3 +98,62 @@ func FilterMap[K comparable, V any](m map[K]V, f func(K, V) bool) map[K]V {
 	}
 	return ret
 }
+
+func addOrUpdateSliceSingle[T any](slice []T, item T) []T {
+	for i, v := range slice {
+		switch any(v).(type) {
+		case string, int, int32, int64, float32, float64, bool:
+			if reflect.DeepEqual(v, item) {
+				slice[i] = item
+				return slice
+			}
+			continue
+		}
+
+		vn := reflect.ValueOf(v).FieldByName("Name")
+		if vn.String() == reflect.ValueOf(item).FieldByName("Name").String() {
+			slice[i] = item
+			return slice
+		}
+	}
+	return append(slice, item)
+}
+
+// AddOrUpdateSlice add or update slice
+func AddOrUpdateSlice[T any](slice []T, items ...T) []T {
+	if len(slice) == 0 {
+		return items
+	}
+	res := slice
+	for _, v := range items {
+		res = addOrUpdateSliceSingle(res, v)
+	}
+	return res
+}
+
+// GetDefault godoc
+func GetDefault[T any](s, d T) T {
+	sv := reflect.ValueOf(s)
+	if sv == reflect.ValueOf(nil) {
+		return d
+	}
+	if sv.IsZero() {
+		return d
+	}
+	if sv.Comparable() {
+		st := reflect.TypeOf(s)
+		if sv.Interface() == reflect.Zero(st).Interface() {
+			return d
+		}
+		return s
+	}
+	k := sv.Kind()
+	switch k {
+	case reflect.Chan, reflect.Func, reflect.Map,
+		reflect.Pointer, reflect.UnsafePointer, reflect.Interface, reflect.Slice:
+		if sv.IsNil() {
+			return d
+		}
+	}
+	return s
+}

@@ -125,6 +125,19 @@ func (c *Cache[K, V]) List() ([]K, []V) {
 	return ks, vs
 }
 
+// ListSet func list k and list v with set
+func (c *Cache[K, V]) ListSet() (*Set[K], *Set[V]) {
+	ks := make([]K, 0)
+	vs := make([]V, 0)
+	c.Range(func(k K, v V) bool {
+		ks = append(ks, k)
+		vs = append(vs, v)
+		return true
+	})
+
+	return NewSetInits(ks), NewSetInits(vs)
+}
+
 // Clean 会被cache manager 定期调用删除过期的元素
 func (c *Cache[K, V]) Clean() {
 	c.smap.Range(func(k, v any) bool {
