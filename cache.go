@@ -191,16 +191,29 @@ type TimeValue interface {
 	Time() time.Time
 }
 
+// TimeoutValue 是一个带有超时时间的值
+type TimeoutValue interface {
+	Timeout() time.Time
+}
+
 func (c *Cache[K, V]) wrapTTL(v any) *wrap {
-	if tv, ok := v.(TimeValue); ok {
+
+	switch tv := v.(type) {
+	case TimeoutValue:
 		return &wrap{
-			timeout: tv.Time(),
+			timeout: tv.Timeout(),
 			v:       v,
 		}
-	}
-	return &wrap{
-		timeout: time.Now().Add(c.ttl),
-		v:       v,
+	case TimeValue:
+		return &wrap{
+			timeout: tv.Time().Add(c.ttl),
+			v:       v,
+		}
+	default:
+		return &wrap{
+			timeout: time.Now().Add(c.ttl),
+			v:       v,
+		}
 	}
 }
 
