@@ -20,7 +20,7 @@ const (
 	IndexByCountry  = `IndexByCountry`
 )
 
-func (p *Person) Indexs() map[string]IndexFunc {
+func (p *Person) Indexes() map[string]IndexFunc {
 	return map[string]IndexFunc{
 		IndexByLastName: func(indexed any) (key []string) {
 			ci := indexed.(*Person)

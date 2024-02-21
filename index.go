@@ -18,7 +18,7 @@ type IndexFunc func(indexed any) (keys []string)
 
 // Indexed 接口, 一个结构实现了Indexed 接口才可以被Indexer 使用
 type Indexed interface {
-	Indexs() map[string]IndexFunc
+	Indexes() map[string]IndexFunc
 	ID() (mainKey string)
 }
 
@@ -56,7 +56,7 @@ func (ix *Indexer[T]) Set(v T) bool {
 	}
 	ix.Del(id)
 	ix.main.Set(id, v)
-	idxs := v.Indexs()
+	idxs := v.Indexes()
 	for name, idx := range idxs {
 		keys := idx(v)
 		ix.rw.Lock()
@@ -92,9 +92,9 @@ func (ix *Indexer[T]) Len() int {
 func (ix *Indexer[T]) Get(id string) (v T, ok bool) {
 	rx, ok := ix.main.Get(id)
 	if !ok {
-		return v, false
+		return v, ok
 	}
-	return rx, false
+	return rx, true
 }
 
 // Del 删除一个Indexed
@@ -120,7 +120,7 @@ func (ix *Indexer[T]) del(req Indexed) {
 	}
 	c := ix.main
 	c.Del(id)
-	idxs := req.Indexs()
+	idxs := req.Indexes()
 	for name, idx := range idxs {
 		keys := idx(req)
 		ix.rw.RLock()
