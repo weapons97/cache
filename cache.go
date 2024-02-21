@@ -186,7 +186,18 @@ type wrap struct {
 	v       any
 }
 
+// TimeValue 是一个带有时间的值
+type TimeValue interface {
+	Time() time.Time
+}
+
 func (c *Cache[K, V]) wrapTTL(v any) *wrap {
+	if tv, ok := v.(TimeValue); ok {
+		return &wrap{
+			timeout: tv.Time(),
+			v:       v,
+		}
+	}
 	return &wrap{
 		timeout: time.Now().Add(c.ttl),
 		v:       v,

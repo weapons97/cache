@@ -23,6 +23,25 @@ func TestNewCache(t *testing.T) {
 	require.Equal(t, d, 0)
 }
 
+type timeVal[T any] struct {
+	t time.Time
+	v T
+}
+
+func (tv *timeVal[T]) Time() time.Time {
+	return tv.t
+}
+
+func TestNewCacheTimeout(t *testing.T) {
+	c := NewCache(WithTTL[string, *timeVal[int]](time.Second))
+	now := time.Now()
+	b := &timeVal[int]{now.Add(-time.Second), 1}
+	c.Set(`a`, b)
+	d, ok := c.Get(`a`)
+	require.False(t, ok)
+	spew.Dump(d)
+}
+
 func TestCacheList(t *testing.T) {
 	c := NewCache[string, int]()
 	c.Set(`a`, 1)
