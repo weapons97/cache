@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"cmp"
 	"reflect"
 	"strings"
 )
@@ -154,6 +155,42 @@ func GetDefault[T any](s, d T) T {
 		if sv.IsNil() {
 			return d
 		}
+	default:
+		return s
+	}
+	return s
+}
+
+func Max[T cmp.Ordered](ts ...T) T {
+	if len(ts) == 0 {
+		return *new(T)
+	}
+	m := ts[0]
+
+	for i := 1; i < len(ts); i++ {
+		m = max(m, ts[i])
+	}
+	return m
+}
+
+func Min[T cmp.Ordered](ts ...T) T {
+	if len(ts) == 0 {
+		return *new(T)
+	}
+	m := ts[0]
+	for i := 1; i < len(ts); i++ {
+		m = min(m, ts[i])
+	}
+	return m
+}
+
+func Sum[T cmp.Ordered](ts ...T) T {
+	if len(ts) == 0 {
+		return *new(T)
+	}
+	s := ts[0]
+	for i := 1; i < len(ts); i++ {
+		s = s + ts[i]
 	}
 	return s
 }

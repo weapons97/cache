@@ -222,3 +222,87 @@ func TestGetDefault(t *testing.T) {
 		})
 	}
 }
+
+func TestMax(t *testing.T) {
+	testCase := []struct {
+		name     string
+		val      []int
+		expected int
+	}{
+		{
+			name:     "t1",
+			val:      []int{1, 2, 3, 4, 5},
+			expected: 5,
+		},
+		{
+			name:     "t2",
+			val:      []int{},
+			expected: 0,
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Max(tc.val...)
+			if res != tc.expected {
+				t.Errorf("expected %v, got %v", tc.expected, res)
+			}
+		})
+	}
+}
+
+func TestMin(t *testing.T) {
+	testCase := []struct {
+		name     string
+		val      []int
+		expected int
+	}{
+		{
+			name:     "t1",
+			val:      []int{1, 2, 3, 4, 5},
+			expected: 1,
+		},
+		{
+			name:     "t2",
+			val:      []int{},
+			expected: 0,
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Min(tc.val...)
+			if res != tc.expected {
+				t.Errorf("expected %v, got %v", tc.expected, res)
+			}
+		})
+	}
+}
+
+func TestSum(t *testing.T) {
+	testCase := []struct {
+		name     string
+		val      []int
+		expected int
+	}{
+		{
+			name:     "t1",
+			val:      []int{-1, 2, 3, 4, 5},
+			expected: 13,
+		},
+		{
+			name:     "t2",
+			val:      []int{},
+			expected: 0,
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Sum(tc.val...)
+			if res != tc.expected {
+				t.Errorf("expected %v, got %v", tc.expected, res)
+			}
+		})
+	}
+}
