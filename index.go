@@ -22,6 +22,72 @@ type Indexed interface {
 	ID() (mainKey string)
 }
 
+// InterfaceIndexer 是Indexer的接口
+type InterfaceIndexer[K Indexed] interface {
+	Add(key ...K)
+	Remove(key ...K)
+	Pop() K
+	Has(items ...K) bool
+	Size() int
+	Clear()
+	IsEmpty() bool
+	Range(fn func(s string, k K) bool)
+	List() ([]string, []K)
+	ListSet() (*Set[string], *Set[K])
+	Merge(s *Indexer[K])
+}
+
+func (ix *Indexer[T]) Add(v ...T) {
+	for i := range v {
+		ix.Set(v[i])
+	}
+}
+
+func (ix *Indexer[T]) Remove(v ...T) {
+	for i := range v {
+		ix.Del(v[i])
+	}
+}
+
+func (ix *Indexer[T]) Pop() T {
+	ks, vs := ix.List()
+	if len(ks) == 0 {
+		return *new(T)
+	}
+	ix.Del(ks[0])
+	return vs[0]
+}
+
+func (ix *Indexer[T]) Has(v ...T) bool {
+	for i := range v {
+		_, ok := ix.Get(v[i].ID())
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (ix *Indexer[T]) Size() int {
+	return ix.Len()
+}
+
+func (ix *Indexer[T]) Clear() {
+	ix.Range(func(k string, v T) bool {
+		ix.Del(v.ID())
+		return true
+	})
+}
+
+func (ix *Indexer[T]) IsEmpty() bool {
+	return ix.Len() == 0
+}
+
+func (ix *Indexer[T]) Merge(s *Indexer[T]) {
+	_, add := s.List()
+	ix.Add(add...)
+}
+
 func IndexGet[T any](i Indexed) (rx T, ok bool) {
 	rx, ok = i.(T)
 	if !ok {
@@ -80,12 +146,7 @@ func (ix *Indexer[T]) Set(v T) bool {
 
 // Len 返回cache 长度
 func (ix *Indexer[T]) Len() int {
-	i := 0
-	ix.Range(func(k string, v T) bool {
-		i++
-		return true
-	})
-	return i
+	return ix.main.Len()
 }
 
 // Get 根据id 查找Indexed

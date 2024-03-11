@@ -214,3 +214,8 @@ func TestIndexRange(t *testing.T) {
 		t.Errorf("got %v, want %v", rx, wants)
 	}
 }
+
+func TestIndexClear(t *testing.T) {
+	index.Clear()
+	require.Equal(t, 0, index.Len())
+}

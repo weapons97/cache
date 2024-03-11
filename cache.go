@@ -28,6 +28,61 @@ type CacheI interface {
 	Name() string
 }
 
+// InterfaceCache 是cache的接口
+type InterfaceCache[K any, V any] interface {
+	Set(req K, values V)
+	Remove(key ...K)
+	Has(items ...K) bool
+	Size() int
+	Clear()
+	IsEmpty() bool
+	Range(fn func(s string, k K) bool)
+	List() ([]string, []K)
+	ListSet() (*Set[K], *Set[V])
+	Merge(s *Cache[K, V])
+}
+
+// Remove 根据key 删除 cache
+func (c *Cache[K, V]) Remove(k ...K) {
+	for i := range k {
+		c.Del(k[i])
+	}
+}
+
+// Has 是否包含
+func (c *Cache[K, V]) Has(k ...K) bool {
+	for i := range k {
+		_, ok := c.Get(k[i])
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// Size 返回cache 长度
+func (c *Cache[K, V]) Size() int {
+	return c.Len()
+}
+
+// Clear 清空cache
+func (c *Cache[K, V]) Clear() {
+	c.smap = &sync.Map{}
+}
+
+// IsEmpty 是否为空
+func (c *Cache[K, V]) IsEmpty() bool {
+	return c.Len() == 0
+}
+
+// Merge 合并cache
+func (c *Cache[K, V]) Merge(s *Cache[K, V]) {
+	s.Range(func(k K, v V) bool {
+		c.Set(k, v)
+		return true
+	})
+}
+
 // Option cache 的选项
 type Option[K any, V any] func(*Cache[K, V])
 
