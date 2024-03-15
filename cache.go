@@ -37,7 +37,9 @@ type InterfaceCache[K any, V any] interface {
 	Clear()
 	IsEmpty() bool
 	Range(fn func(s string, k K) bool)
-	List() ([]string, []K)
+	List() ([]K, []V)
+	ListKey() []K
+	ListValue() []V
 	ListSet() (*Set[K], *Set[V])
 	Merge(s *Cache[K, V])
 }
@@ -188,6 +190,18 @@ func (c *Cache[K, V]) List() ([]K, []V) {
 		return true
 	})
 	return ks, vs
+}
+
+// ListKey func list k
+func (c *Cache[K, V]) ListKey() []K {
+	ks, _ := c.List()
+	return ks
+}
+
+// ListValue func list v
+func (c *Cache[K, V]) ListValue() []V {
+	_, vs := c.List()
+	return vs
 }
 
 // ListSet func list k and list v with set

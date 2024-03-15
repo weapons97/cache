@@ -33,6 +33,8 @@ type InterfaceIndexer[K Indexed] interface {
 	IsEmpty() bool
 	Range(fn func(s string, k K) bool)
 	List() ([]string, []K)
+	ListKey() []string
+	ListValue() []K
 	ListSet() (*Set[string], *Set[K])
 	Merge(s *Indexer[K])
 }
@@ -216,6 +218,18 @@ func (ix *Indexer[T]) List() ([]string, []T) {
 		return true
 	})
 	return ks, vs
+}
+
+// ListKey func list k
+func (ix *Indexer[T]) ListKey() []string {
+	ks, _ := ix.List()
+	return ks
+}
+
+// ListValue func list v
+func (ix *Indexer[T]) ListValue() []T {
+	_, vs := ix.List()
+	return vs
 }
 
 // ListSet func list k and list v with set
