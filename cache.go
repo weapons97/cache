@@ -29,7 +29,7 @@ type CacheI interface {
 }
 
 // InterfaceCache 是cache的接口
-type InterfaceCache[K any, V any] interface {
+type InterfaceCache[K comparable, V any] interface {
 	Set(req K, values V)
 	Remove(key ...K)
 	Has(items ...K) bool
@@ -40,7 +40,6 @@ type InterfaceCache[K any, V any] interface {
 	List() ([]K, []V)
 	ListKey() []K
 	ListValue() []V
-	ListSet() (*Set[K], *Set[V])
 	Merge(s *Cache[K, V])
 }
 
@@ -86,24 +85,24 @@ func (c *Cache[K, V]) Merge(s *Cache[K, V]) {
 }
 
 // Option cache 的选项
-type Option[K any, V any] func(*Cache[K, V])
+type Option[K comparable, V any] func(*Cache[K, V])
 
 // WithTTL 设置超时
-func WithTTL[K any, V any](ttl time.Duration) Option[K, V] {
+func WithTTL[K comparable, V any](ttl time.Duration) Option[K, V] {
 	return func(cache *Cache[K, V]) {
 		cache.ttl = ttl
 	}
 }
 
 // WithName 设置cache名称
-func WithName[K any, V any](name string) Option[K, V] {
+func WithName[K comparable, V any](name string) Option[K, V] {
 	return func(cache *Cache[K, V]) {
 		cache.name = name
 	}
 }
 
 // WithNoManager 设置cache不受 cacheManager管理
-func WithNoManager[K any, V any]() Option[K, V] {
+func WithNoManager[K comparable, V any]() Option[K, V] {
 	return func(cache *Cache[K, V]) {
 		cache.noManager = true
 	}
@@ -123,7 +122,7 @@ func (c *Cache[K, V]) init(opts ...Option[K, V]) {
 }
 
 // NewCache 创建新cache
-func NewCache[K any, V any](opts ...Option[K, V]) *Cache[K, V] {
+func NewCache[K comparable, V any](opts ...Option[K, V]) *Cache[K, V] {
 	res := Cache[K, V]{}
 	res.opts = opts
 	res.init(opts...)
@@ -135,13 +134,22 @@ func NewCache[K any, V any](opts ...Option[K, V]) *Cache[K, V] {
 	return &res
 }
 
+// NewCacheInits 创建新cache
+func NewCacheInits[K comparable, V any](inits map[K]V, opts ...Option[K, V]) *Cache[K, V] {
+	res := NewCache(opts...)
+	for k, v := range inits {
+		res.Set(k, v)
+	}
+	return res
+}
+
 // Options 返回cache的选项
 func (c *Cache[K, V]) Options() []Option[K, V] {
 	return c.opts
 }
 
 // Cache 是一个带超时的缓存, 超时的元素会获取不到并删除(默认情况下)
-type Cache[K any, V any] struct {
+type Cache[K comparable, V any] struct {
 	ttl       time.Duration
 	smap      *sync.Map
 	name      string
@@ -202,12 +210,6 @@ func (c *Cache[K, V]) ListKey() []K {
 func (c *Cache[K, V]) ListValue() []V {
 	_, vs := c.List()
 	return vs
-}
-
-// ListSet func list k and list v with set
-func (c *Cache[K, V]) ListSet() (*Set[K], *Set[V]) {
-	ks, vs := c.List()
-	return NewSetInits(ks), NewSetInits(vs)
 }
 
 // Clean 会被cache manager 定期调用删除过期的元素

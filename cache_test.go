@@ -23,6 +23,20 @@ func TestNewCache(t *testing.T) {
 	require.Equal(t, d, 0)
 }
 
+func TestNewCacheInits(t *testing.T) {
+	inits := map[string]int{
+		`a`: 1,
+		`b`: 2,
+	}
+	c := NewCacheInits(inits)
+	d, ok := c.Get(`a`)
+	require.True(t, ok)
+	require.Equal(t, 1, d)
+	d, ok = c.Get(`b`)
+	require.True(t, ok)
+	require.Equal(t, 2, d)
+}
+
 type timeVal[T any] struct {
 	t time.Time
 	v T

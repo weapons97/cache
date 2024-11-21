@@ -35,7 +35,6 @@ type InterfaceIndexer[K Indexed] interface {
 	List() ([]string, []K)
 	ListKey() []string
 	ListValue() []K
-	ListSet() (*Set[string], *Set[K])
 	Merge(s *Indexer[K])
 }
 
@@ -232,12 +231,6 @@ func (ix *Indexer[T]) ListValue() []T {
 	return vs
 }
 
-// ListSet func list k and list v with set
-func (ix *Indexer[T]) ListSet() (*Set[string], *Set[T]) {
-	ks, vs := ix.List()
-	return NewSetInits(ks), NewSetInits(vs)
-}
-
 // SetFromIndex 从indexName 创建一个Set
 func (ix *Indexer[T]) SetFromIndex(idxName string) (*Set[string], error) {
 	ix.rw.RLock()
@@ -290,12 +283,6 @@ func (sr *SearchResult[T]) InvokeAll() []T {
 		return sr.Res
 	}
 	return nil
-}
-
-// InvokeAllSet 返回所有搜索结果
-func (sr *SearchResult[T]) InvokeAllSet() *Set[T] {
-	res := sr.InvokeAll()
-	return NewSetInits(res)
 }
 
 // Range 遍历所有搜索结果

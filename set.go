@@ -9,7 +9,7 @@
 package cache
 
 // InterfaceSet 是set的接口
-type InterfaceSet[K any] interface {
+type InterfaceSet[K comparable] interface {
 	Add(key ...K)
 	Remove(key ...K)
 	Pop() K
@@ -28,13 +28,13 @@ type InterfaceSet[K any] interface {
 }
 
 // Set 是Set 型的cache 会多几个集合操作
-type Set[K any] struct {
+type Set[K comparable] struct {
 	inner *Cache[K, struct{}]
 }
 
 var setVal = struct{}{}
 
-func newSet[K any](opts ...Option[K, struct{}]) *Set[K] {
+func newSet[K comparable](opts ...Option[K, struct{}]) *Set[K] {
 	c := NewCache[K, struct{}](opts...)
 	s := new(Set[K])
 	s.inner = c
@@ -42,12 +42,12 @@ func newSet[K any](opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // NewSet 新创建set
-func NewSet[K any](opts ...Option[K, struct{}]) *Set[K] {
+func NewSet[K comparable](opts ...Option[K, struct{}]) *Set[K] {
 	return newSet[K](opts...)
 }
 
 // NewSetInits 新创建set
-func NewSetInits[K any](inits []K, opts ...Option[K, struct{}]) *Set[K] {
+func NewSetInits[K comparable](inits []K, opts ...Option[K, struct{}]) *Set[K] {
 	s := newSet[K](opts...)
 	for i := range inits {
 		s.Add(inits[i])
