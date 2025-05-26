@@ -171,3 +171,60 @@ func TestMerge(t *testing.T) {
 
 	require.Equal(t, ans1, ans2)
 }
+
+func TestPowerSet(t *testing.T) {
+	// Setup test input
+	s := NewSet[int]()
+	s.Add(1)
+	s.Add(2)
+	s.Add(3)
+
+	// Get the power set
+	powerSet := s.PowerSet()
+
+	// Verify the number of subsets (should be 2^n = 8 for n=3)
+	require.Equal(t, 8, len(powerSet), "Power set of 3 elements should have 8 subsets")
+
+	// Collect all subsets for verification
+	var subsets [][]int
+	for _, subset := range powerSet {
+		items := subset.List()
+		sort.Ints(items)
+		subsets = append(subsets, items)
+	}
+
+	// Expected subsets (including empty set)
+	expected := [][]int{
+		{},
+		{1},
+		{2},
+		{3},
+		{1, 2},
+		{1, 3},
+		{2, 3},
+		{1, 2, 3},
+	}
+
+	// Sort both actual and expected for comparison
+	sortSubsets := func(subsets [][]int) {
+		sort.Slice(subsets, func(i, j int) bool {
+			if len(subsets[i]) != len(subsets[j]) {
+				return len(subsets[i]) < len(subsets[j])
+			}
+			for k := 0; k < len(subsets[i]); k++ {
+				if subsets[i][k] != subsets[j][k] {
+					return subsets[i][k] < subsets[j][k]
+				}
+			}
+			return false
+		})
+	}
+
+	sortSubsets(subsets)
+	sortSubsets(expected)
+
+	// Verify all subsets are present
+	require.Equal(t, expected, subsets, "Power set should contain all possible subsets")
+
+	spew.Dump(subsets)
+}

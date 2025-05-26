@@ -8,6 +8,22 @@
 =============================================================================*/
 package cache
 
+// PowerSet 求幂集
+func PowerSet[T any](s []T) [][]T {
+	n := len(s)
+	powerset := [][]T{}
+	for mask := 1; mask < (1 << n); mask++ {
+		subSet := []T{}
+		for j := 0; j < n; j++ {
+			if (mask>>j)&1 == 1 {
+				subSet = append(subSet, s[j])
+			}
+		}
+		powerset = append(powerset, subSet)
+	}
+	return powerset
+}
+
 // InterfaceSet 是set的接口
 type InterfaceSet[K comparable] interface {
 	Add(key ...K)
@@ -56,64 +72,64 @@ func NewSetInits[K comparable](inits []K, opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // Add 添加key
-func (c *Set[K]) Add(key ...K) {
+func (s *Set[K]) Add(key ...K) {
 	for i := range key {
-		c.inner.Set(key[i], setVal)
+		s.inner.Set(key[i], setVal)
 	}
 }
 
 // Has 已查找已传递的项目是否存在。如果未传递任何内容，则返回 false。对于多个项目，仅当所有项目都存在时，它才返回 true。
-func (c *Set[K]) Has(items ...K) bool {
+func (s *Set[K]) Has(items ...K) bool {
 	if len(items) == 0 {
 		return false
 	}
 
 	for _, item := range items {
-		if _, ok := c.inner.Get(item); !ok {
+		if _, ok := s.inner.Get(item); !ok {
 			return false
 		}
 	}
 	return true
 }
 
-func (c *Set[K]) Pop() (res K) {
-	c.inner.Range(func(k K, v struct{}) bool {
+func (s *Set[K]) Pop() (res K) {
+	s.inner.Range(func(k K, v struct{}) bool {
 		res = k
-		c.inner.Del(k)
+		s.inner.Del(k)
 		return false
 	})
 	return res
 }
 
 // Remove 删除key
-func (c *Set[K]) Remove(key ...K) {
+func (s *Set[K]) Remove(key ...K) {
 	for i := range key {
-		c.inner.Del(key[i])
+		s.inner.Del(key[i])
 	}
 }
 
 // Range 遍历set
-func (c *Set[K]) Range(fn func(k K) bool) {
-	c.inner.Range(func(k K, v struct{}) bool {
+func (s *Set[K]) Range(fn func(k K) bool) {
+	s.inner.Range(func(k K, v struct{}) bool {
 		return fn(k)
 	})
 }
 
 // Size 返回cache 长度
-func (c *Set[K]) Size() int {
-	return c.inner.Len()
+func (s *Set[K]) Size() int {
+	return s.inner.Len()
 }
 
 // Get 查找key是否存在
-func (c *Set[K]) Get(key K) bool {
-	_, ok := c.inner.Get(key)
+func (s *Set[K]) Get(key K) bool {
+	_, ok := s.inner.Get(key)
 	return ok
 }
 
 // List 列出元素
-func (c *Set[K]) List() []K {
+func (s *Set[K]) List() []K {
 	res := make([]K, 0)
-	c.Range(func(k K) bool {
+	s.Range(func(k K) bool {
 		res = append(res, k)
 		return true
 	})
@@ -131,13 +147,13 @@ func (c *Set[K]) List() []K {
 //}
 
 // Union 并集
-func (c *Set[K]) Union(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+func (s *Set[K]) Union(o *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
-	c.Range(func(k K) bool {
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k K) bool {
+	o.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
@@ -145,13 +161,13 @@ func (c *Set[K]) Union(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // Difference godoc
-func (c *Set[K]) Difference(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+func (s *Set[K]) Difference(o *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
-	c.Range(func(k K) bool {
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k K) bool {
+	o.Range(func(k K) bool {
 		ok := n.Get(k)
 		if ok {
 			n.Remove(k)
@@ -162,14 +178,14 @@ func (c *Set[K]) Difference(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // Intersection 交集
-func (c *Set[K]) Intersection(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+func (s *Set[K]) Intersection(o *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
-	c.Range(func(k K) bool {
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
 	n.Range(func(k K) bool {
-		ok := s.Get(k)
+		ok := o.Get(k)
 		if !ok {
 			n.Remove(k)
 		}
@@ -179,13 +195,13 @@ func (c *Set[K]) Intersection(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 }
 
 // Sub 差集
-func (c *Set[K]) Sub(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
+func (s *Set[K]) Sub(o *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 	n := NewSet[K](opts...)
-	c.Range(func(k K) bool {
+	s.Range(func(k K) bool {
 		n.Add(k)
 		return true
 	})
-	s.Range(func(k K) bool {
+	o.Range(func(k K) bool {
 		ok := n.Get(k)
 		if ok {
 			n.Remove(k)
@@ -197,53 +213,73 @@ func (c *Set[K]) Sub(s *Set[K], opts ...Option[K, struct{}]) *Set[K] {
 
 // Separate it's not the opposite of Merge.
 // Separate removes the set items containing in t from set s. Please aware that
-func (c *Set[K]) Separate(t *Set[K]) {
-	c.Remove(t.List()...)
+func (s *Set[K]) Separate(t *Set[K]) {
+	s.Remove(t.List()...)
 }
 
 // Copy 复制set
-func (c *Set[K]) Copy() *Set[K] {
-	opts := c.inner.opts
-	return NewSetInits(c.List(), opts...)
+func (s *Set[K]) Copy() *Set[K] {
+	opts := s.inner.opts
+	return NewSetInits(s.List(), opts...)
 }
 
 // Merge 合并set
-func (c *Set[K]) Merge(s *Set[K]) {
-	s.Range(func(k K) bool {
-		c.Add(k)
+func (s *Set[K]) Merge(o *Set[K]) {
+	o.Range(func(k K) bool {
+		s.Add(k)
 		return true
 	})
 }
 
 // Clear 清空set
-func (c *Set[K]) Clear() {
-	c.inner = NewCache[K, struct{}]()
+func (s *Set[K]) Clear() {
+	s.inner = NewCache[K, struct{}]()
 }
 
 // IsEmpty 判断set是否为空
-func (c *Set[K]) IsEmpty() bool {
-	return c.Size() == 0
+func (s *Set[K]) IsEmpty() bool {
+	return s.Size() == 0
 }
 
 // IsEqual 判断set是否相等
-func (c *Set[K]) IsEqual(s *Set[K]) bool {
-	if c.Size() != s.Size() {
+func (s *Set[K]) IsEqual(o *Set[K]) bool {
+	if s.Size() != o.Size() {
 		return false
 	}
-	return c.Difference(s).IsEmpty()
+	return s.Difference(o).IsEmpty()
 }
 
 // IsSubset 判断set是否为子集
-func (c *Set[K]) IsSubset(s *Set[K]) (subset bool) {
+func (s *Set[K]) IsSubset(o *Set[K]) (subset bool) {
 	subset = true
-	s.Range(func(k K) bool {
-		subset = c.Get(k)
+	o.Range(func(k K) bool {
+		subset = s.Get(k)
 		return subset
 	})
 	return
 }
 
 // IsSuperset 判断set是否为父集
-func (c *Set[K]) IsSuperset(s *Set[K]) bool {
-	return s.IsSubset(c)
+func (s *Set[K]) IsSuperset(o *Set[K]) bool {
+	return o.IsSubset(s)
+}
+
+// PowerSet 取幂集
+func (s *Set[K]) PowerSet(key ...K) (powerSet []*Set[K]) {
+	n := s.Size()
+	l := s.List()
+	emptySet := NewSet[K]()
+	powerSet = []*Set[K]{
+		emptySet,
+	}
+	for mask := 1; mask < (1 << n); mask++ {
+		subSet := NewSet[K]()
+		for j := 0; j < n; j++ {
+			if (mask>>j)&1 == 1 {
+				subSet.Add(l[j])
+			}
+		}
+		powerSet = append(powerSet, subSet)
+	}
+	return powerSet
 }
