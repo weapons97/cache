@@ -2,22 +2,21 @@ package filters
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRange(t *testing.T) {
 	a := []int{1, 2, 3, 4, 5, 6}
 	ans := []int{1, 2, 3, 4}
-	var b = []int{}
-	Range(a, func(i int) bool {
+	b := Range(a, func(i int) (int, bool) {
 		if i < 5 {
-			b = append(b, i)
-			return true
+			return i, true
 		}
-		return false
+		return 0, false
 	})
 	require.Equal(t, ans, b)
 	spew.Dump(b)
@@ -302,6 +301,99 @@ func TestSum(t *testing.T) {
 			res := Sum(tc.val...)
 			if res != tc.expected {
 				t.Errorf("expected %v, got %v", tc.expected, res)
+			}
+		})
+	}
+}
+
+func TestContains(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    []int
+		item     int
+		expected bool
+	}{
+		{"contains", []int{1, 2, 3, 4, 5}, 3, true},
+		{"not_contains", []int{1, 2, 3, 4, 5}, 6, false},
+		{"empty_slice", []int{}, 1, false},
+		{"single_item", []int{1}, 1, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Contains(tt.slice, tt.item)
+			if result != tt.expected {
+				t.Errorf("Contains(%v, %d) = %v, want %v", tt.slice, tt.item, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestUnique(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{"no_duplicates", []int{1, 2, 3, 4, 5}, []int{1, 2, 3, 4, 5}},
+		{"with_duplicates", []int{1, 2, 2, 3, 3, 4}, []int{1, 2, 3, 4}},
+		{"empty_slice", []int{}, []int{}},
+		{"single_item", []int{1}, []int{1}},
+		{"all_duplicates", []int{1, 1, 1, 1}, []int{1}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Unique(tt.input)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Unique(%v) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{"normal", []int{1, 2, 3, 4, 5}, []int{5, 4, 3, 2, 1}},
+		{"empty", []int{}, []int{}},
+		{"single", []int{1}, []int{1}},
+		{"two_items", []int{1, 2}, []int{2, 1}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Reverse(tt.input)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Reverse(%v) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestChunk(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		size     int
+		expected [][]int
+	}{
+		{"normal_chunks", []int{1, 2, 3, 4, 5, 6}, 2, [][]int{{1, 2}, {3, 4}, {5, 6}}},
+		{"uneven_chunks", []int{1, 2, 3, 4, 5}, 2, [][]int{{1, 2}, {3, 4}, {5}}},
+		{"empty_slice", []int{}, 3, [][]int{}},
+		{"size_larger_than_slice", []int{1, 2}, 5, [][]int{{1, 2}}},
+		{"size_one", []int{1, 2, 3}, 1, [][]int{{1}, {2}, {3}}},
+		{"invalid_size", []int{1, 2, 3}, 0, [][]int{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Chunk(tt.input, tt.size)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Chunk(%v, %d) = %v, want %v", tt.input, tt.size, result, tt.expected)
 			}
 		})
 	}
