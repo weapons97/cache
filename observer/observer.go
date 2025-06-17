@@ -35,8 +35,8 @@ func (o *Observer[T]) IsEmpty() bool {
 }
 
 // Range 对切片执行函数，返回第一个非零值
-func (o *Observer[T]) Range(fn func(obj T) (T, bool)) *Observer[T] {
-	return New(filters.Range(o.data, fn))
+func (o *Observer[T]) Range(fn func(obj T) bool) {
+	filters.Range(o.data, fn)
 }
 
 // Filter 过滤切片，返回满足条件的元素

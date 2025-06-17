@@ -11,15 +11,13 @@ func NoSpace(s string) bool {
 	return strings.TrimSpace(s) != ""
 }
 
-// Range 对切片执行函数，返回第一个非零值
-func Range[T any, R any](objs []T, fn func(obj T) (R, bool)) []R {
-	rets := make([]R, 0, len(objs))
+// Range 遍历切片，当函数返回false时停止
+func Range[T any](objs []T, fn func(obj T) bool) {
 	for _, obj := range objs {
-		if ret, ok := fn(obj); ok {
-			rets = append(rets, ret)
+		if !fn(obj) {
+			return
 		}
 	}
-	return rets
 }
 
 // Filter 过滤切片，返回满足条件的元素

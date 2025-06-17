@@ -61,6 +61,17 @@ func (c *Cache[K, V]) Has(k ...K) bool {
 	return true
 }
 
+// HasAny 是否包含任何一个键
+func (c *Cache[K, V]) HasAny(k ...K) bool {
+	for i := range k {
+		_, ok := c.Get(k[i])
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
 // Size 返回cache 长度
 func (c *Cache[K, V]) Size() int {
 	return c.Len()

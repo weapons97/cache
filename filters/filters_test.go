@@ -9,19 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRange(t *testing.T) {
-	a := []int{1, 2, 3, 4, 5, 6}
-	ans := []int{1, 2, 3, 4}
-	b := Range(a, func(i int) (int, bool) {
-		if i < 5 {
-			return i, true
-		}
-		return 0, false
-	})
-	require.Equal(t, ans, b)
-	spew.Dump(b)
-}
-
 func TestFilter(t *testing.T) {
 	ans := []int{2, 4, 6}
 	a := []int{1, 2, 3, 4, 5, 6}
@@ -397,4 +384,118 @@ func TestChunk(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRange(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          []int
+		fn             func(int) bool
+		expectedCount  int
+		expectedResult []int
+	}{
+		{
+			name:  "normal_range",
+			input: []int{1, 2, 3, 4, 5},
+			fn: func(x int) bool {
+				return x <= 3
+			},
+			expectedCount:  4,
+			expectedResult: []int{1, 2, 3, 4},
+		},
+		{
+			name:  "early_stop",
+			input: []int{1, 2, 3, 4, 5},
+			fn: func(x int) bool {
+				return x < 3
+			},
+			expectedCount:  3,
+			expectedResult: []int{1, 2, 3},
+		},
+		{
+			name:  "all_true",
+			input: []int{1, 2, 3, 4, 5},
+			fn: func(x int) bool {
+				return true
+			},
+			expectedCount:  5,
+			expectedResult: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name:  "first_false",
+			input: []int{1, 2, 3, 4, 5},
+			fn: func(x int) bool {
+				return false
+			},
+			expectedCount:  1,
+			expectedResult: []int{1},
+		},
+		{
+			name:  "empty_slice",
+			input: []int{},
+			fn: func(x int) bool {
+				return true
+			},
+			expectedCount:  0,
+			expectedResult: []int{},
+		},
+		{
+			name:  "condition_based_stop",
+			input: []int{1, 2, 3, 4, 5},
+			fn: func(x int) bool {
+				return x%2 == 1
+			},
+			expectedCount:  2,
+			expectedResult: []int{1, 2},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result []int
+			count := 0
+
+			Range(tt.input, func(x int) bool {
+				result = append(result, x)
+				count++
+				return tt.fn(x)
+			})
+			// 修正：nil和空slice视为等价
+			if result == nil {
+				result = []int{}
+			}
+			require.Equal(t, tt.expectedCount, count, "处理元素数量不匹配")
+			require.Equal(t, tt.expectedResult, result, "处理结果不匹配")
+		})
+	}
+}
+
+func TestRangeString(t *testing.T) {
+	input := []string{"a", "b", "c", "d", "e"}
+	var result []string
+	count := 0
+
+	Range(input, func(s string) bool {
+		result = append(result, s)
+		count++
+		return len(s) == 1
+	})
+
+	require.Equal(t, 5, count, "应该处理所有元素")
+	require.Equal(t, input, result, "应该处理所有字符串")
+}
+
+func TestRangeWithSideEffects(t *testing.T) {
+	input := []int{1, 2, 3, 4, 5}
+	sum := 0
+	processed := 0
+
+	Range(input, func(x int) bool {
+		sum += x
+		processed++
+		return x < 4
+	})
+
+	require.Equal(t, 4, processed, "应该处理4个元素（包括停止的那个）")
+	require.Equal(t, 10, sum, "前4个元素的和应该是10")
 }
