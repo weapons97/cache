@@ -30,6 +30,7 @@ type InterfaceSet[K comparable] interface {
 	Remove(key ...K)
 	Pop() K
 	Has(items ...K) bool
+	HasAny(k ...K) bool
 	Size() int
 	Clear()
 	IsEmpty() bool
@@ -90,6 +91,20 @@ func (s *Set[K]) Has(items ...K) bool {
 		}
 	}
 	return true
+}
+
+// HasAny 检查是否存在任何一个传递的项目。如果未传递任何内容，则返回 false。对于多个项目，只要有一个存在就返回 true。
+func (s *Set[K]) HasAny(items ...K) bool {
+	if len(items) == 0 {
+		return false
+	}
+
+	for _, item := range items {
+		if _, ok := s.inner.Get(item); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Set[K]) Pop() (res K) {

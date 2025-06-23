@@ -1,10 +1,11 @@
 package cache
 
 import (
-	"github.com/davecgh/go-spew/spew"
-	"github.com/stretchr/testify/require"
 	"sort"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetUnion(t *testing.T) {
@@ -110,6 +111,32 @@ func TestSetHas(t *testing.T) {
 	require.True(t, s.Has(`a`, `b`))
 	require.False(t, s.Has(`a`, `b`, `c`))
 	require.False(t, s.Has(`c`))
+}
+
+func TestSetHasAny(t *testing.T) {
+	req := []string{`a`, `b`}
+	s := NewSetInits(req)
+
+	// 测试单个元素
+	require.True(t, s.HasAny(`a`))
+	require.True(t, s.HasAny(`b`))
+	require.False(t, s.HasAny(`c`))
+
+	// 测试多个元素 - 任何一个存在就返回 true
+	require.True(t, s.HasAny(`a`, `b`))
+	require.True(t, s.HasAny(`a`, `c`))
+	require.True(t, s.HasAny(`c`, `b`))
+	require.False(t, s.HasAny(`c`, `d`))
+
+	// 测试空参数
+	require.False(t, s.HasAny())
+
+	// 测试整数类型
+	intSet := NewSetInits([]int{1, 2, 3, 8})
+	require.True(t, intSet.HasAny(1))
+	require.True(t, intSet.HasAny(2, 3))
+	require.True(t, intSet.HasAny(4, 2))
+	require.False(t, intSet.HasAny(4, 5))
 }
 
 func TestSeparate(t *testing.T) {

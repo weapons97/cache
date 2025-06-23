@@ -33,6 +33,7 @@ type InterfaceCache[K comparable, V any] interface {
 	Set(req K, values V)
 	Remove(key ...K)
 	Has(items ...K) bool
+	HasAny(k ...K) bool
 	Size() int
 	Clear()
 	IsEmpty() bool
